@@ -2,36 +2,32 @@ name: "🚀 Main CI Pipeline"
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]
   push:
-    branches: [main]
+    branches: [main, dev]
 
 jobs:
   validate-pom:
-    name: "🧪 Validate POM"
+    name: "📦 Validate POM"  # Exact name for branch protection
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-utils
           chmod +x ./scripts/pom-validator.sh
-
       - name: Validate POM
         run: |
-          xmllint --noout pom.xml || (echo "::error::Malformed XML in pom.xml"; exit 1)
+          xmllint --noout pom.xml || (echo "::error::Malformed XML"; exit 1)
           ./scripts/pom-validator.sh --strict --html
-
       - uses: actions/upload-artifact@v4
-        name: 📦 Upload POM Report
         with:
           name: pom-validation-report
           path: Reports/pom-validation-report.html
 
   build:
-    name: "🏗️ Build & Test"
+    name: "🏗️ Build & Test"  # Exact name for branch protection
     needs: validate-pom
     runs-on: ubuntu-latest
     steps:
@@ -42,15 +38,14 @@ jobs:
           java-version: 21
       - run: mvn -B clean verify
       - uses: actions/upload-artifact@v4
-        name: 📊 Upload Test Results
         with:
-          name: test-results-${{ github.run_id }}
+          name: test-results
           path: |
             target/surefire-reports/**
             target/failsafe-reports/**
 
   security:
-    name: "🔒 Dependency Security"
+    name: "🔒 Dependency Security"  # Exact name for branch protection
     needs: validate-pom
     runs-on: ubuntu-latest
     steps:
@@ -59,10 +54,16 @@ jobs:
         with:
           distribution: temurin
           java-version: 21
-      - run: mvn org.owasp:dependency-check-maven:check
+      - name: Cache OWASP dependency-check data
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository/org/owasp/dependency-check-data
+          key: owasp-db-${{ runner.os }}-${{ hashFiles('**/pom.xml') }}
+      - name: Run OWASP Dependency Check
+        run: mvn org.owasp:dependency-check-maven:check
 
   quality:
-    name: "📊 Code Quality"
+    name: "📊 Code Quality"  # Exact name for branch protection
     needs: validate-pom
     runs-on: ubuntu-latest
     steps:

@@ -8,22 +8,19 @@ on:
 
 jobs:
   validate:
-    name: Validate POM
+    name: "🧪 POM Validation"  # Exact name for branch protection
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-
       - name: Install dependencies
         run: |
           sudo apt-get update
           sudo apt-get install -y libxml2-utils
           chmod +x ./scripts/pom-validator.sh
-
       - name: Validate POM
         run: |
           xmllint --noout pom.xml || (echo "::error::Malformed XML"; exit 1)
           ./scripts/pom-validator.sh --html --graph
-
       - uses: actions/upload-artifact@v4
         with:
           name: pom-validation-report

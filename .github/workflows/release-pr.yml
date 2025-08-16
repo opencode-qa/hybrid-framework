@@ -1,28 +1,29 @@
 name: "🚀 Release Automation"
 
 on:
-  push:
+  workflow_run:
+    workflows: ["Main CI Pipeline", "POM Validation"]
+    branches: [main, dev]
+    types: [completed]
+  pull_request:
     branches: [main]
-    tags-ignore: ['*']
+    types: [opened, synchronize, reopened]
   workflow_dispatch:
-
-env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Changed from GH_PAT to built-in token
-
-permissions:
-  contents: write
-  pull-requests: write
-  issues: write
 
 jobs:
   release:
+    name: "🚀 Release Automation"  # Exact name for branch protection
     runs-on: ubuntu-latest
+    if: |
+      (github.event_name == 'workflow_run' && github.event.workflow_run.conclusion == 'success') ||
+      (github.event_name == 'pull_request' && github.event.pull_request.base.ref == 'main' && github.event.pull_request.head.ref == 'dev')
+
     steps:
-      - name: Checkout code
+      - name: Checkout repository
         uses: actions/checkout@v4
         with:
+          ref: main
           fetch-depth: 0
-          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -30,55 +31,82 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-
-      - name: Determine version
+      - name: Get version information
         id: version
         run: |
-          if git describe --tags --abbrev=0 &>/dev/null; then
+          # First release detection
+          if [ -z "$(git tag -l)" ]; then
+            echo "new_version=0.0.0" >> $GITHUB_OUTPUT
+            echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
+            echo "is_initial_release=true" >> $GITHUB_OUTPUT
+          else
+            # Normal version bump
             LATEST_TAG=$(git describe --tags --abbrev=0)
             VERSION="${LATEST_TAG#v}"
             IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
             NEW_VERSION="${MAJOR}.$((MINOR+1)).0"
             echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
             echo "new_tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "new_version=0.0.0" >> $GITHUB_OUTPUT
-            echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
+            echo "is_initial_release=false" >> $GITHUB_OUTPUT
           fi
+          echo "Detected version: ${{ steps.version.outputs.new_tag }}"
 
       - name: Update POM version
+        if: steps.version.outputs.is_initial_release != 'true'
         run: |
           mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add pom.xml
-          git commit -m "chore: bump to ${{ steps.version.outputs.new_tag }}"
+          git commit -m "chore: version bump → ${{ steps.version.outputs.new_tag }} [skip ci]"
           git push
 
-      - name: Create and push tag
+      - name: Create Git tag
         run: |
-          git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+          git tag -a ${{ steps.version.outputs.new_tag }} \
+            -m "Release ${{ steps.version.outputs.new_tag }}"
           git push origin ${{ steps.version.outputs.new_tag }}
 
       - name: Generate changelog
         run: |
-          if git tag --list | grep -q .; then
-            PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1 --skip=1))
-            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)")
+          if ${{ steps.version.outputs.is_initial_release }}; then
+            echo "# Initial Release" > CHANGELOG.md
+            echo "First version of the project" >> CHANGELOG.md
           else
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
+            echo "# Release ${{ steps.version.outputs.new_tag }}" > CHANGELOG.md
+            echo "## Changes since $PREV_TAG" >> CHANGELOG.md
+            git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)" >> CHANGELOG.md
           fi
-          echo -e "## Release ${{ steps.version.outputs.new_tag }}\n\n$CHANGELOG" > CHANGELOG.md
 
-      - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.new_tag }}
-          release_name: Release ${{ steps.version.outputs.new_tag }}
+          name: "Release ${{ steps.version.outputs.new_tag }}"
           body_path: CHANGELOG.md
-          draft: false
-          prerelease: false
+          generate_release_notes: true
+
+      - name: Update related issues
+        if: steps.version.outputs.is_initial_release != 'true'
+        run: |
+          # Find recently closed issues
+          CLOSED_ISSUES=$(gh api search/issues \
+            -q "repo:${{ github.repository }} is:closed closed:>${{ github.event.workflow_run.created_at }}" \
+            --jq '.items[].number' | tr '\n' ' ')
+
+          # Add release notification to each issue
+          for ISSUE in $CLOSED_ISSUES; do
+            echo "Updating issue #$ISSUE"
+            gh issue comment $ISSUE \
+              --body "🚀 Included in release [${{ steps.version.outputs.new_tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.new_tag}})"
+          done
+
+      - name: Show results
+        run: |
+          echo "=== RELEASE COMPLETE ==="
+          echo "Version: ${{ steps.version.outputs.new_tag }}"
+          echo "Release URL: https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.new_tag }}"
+          if [ -n "$CLOSED_ISSUES" ]; then
+            echo "Linked Issues: $CLOSED_ISSUES"
+          fi
