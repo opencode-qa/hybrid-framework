@@ -38,6 +38,9 @@ jobs:
           rm token.txt
           gh auth status
 
+      - name: Debug files
+        run: ls -la scripts/
+
       - name: Determine version
         id: version
         run: |
@@ -53,6 +56,12 @@ jobs:
             echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
           fi
 
+      - name: Create first tag if none exists
+        if: ${{ !contains(steps.version.outputs.new_tag, '0.0.0') }}
+        run: |
+          git tag v0.0.0
+          git push origin v0.0.0
+
       - name: Update POM
         run: |
           mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
@@ -63,14 +72,19 @@ jobs:
           git push
 
       - name: Create tag
-        run: git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+        run: |
+          git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+          git push origin ${{ steps.version.outputs.new_tag }}
 
       - name: Generate changelog
         run: |
-          PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1 --skip=1) || echo "")
-          CHANGELOG="## Changes since ${PREV_TAG:-beginning}\n\n"
-          CHANGELOG+=$(git log ${PREV_TAG:-HEAD} --pretty=format:"- %s (%h)")
-          echo -e "$CHANGELOG" > CHANGELOG.md
+          if git tag --list | grep -q .; then
+            PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1 --skip=1))
+            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)")
+          else
+            CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+          fi
+          echo -e "## Full Changelog\n\n$CHANGELOG" > CHANGELOG.md
 
       - name: Create release
         uses: softprops/action-gh-release@v1
