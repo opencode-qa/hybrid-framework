@@ -34,7 +34,7 @@ readonly ICON_VERSION="${GREEN}🔖${NC}"
 # === Global Variables ===
 declare -A CHECKS_COUNT=( ["pass"]=0 ["warn"]=0 ["fail"]=0 ["info"]=0 ["skip"]=0 )
 declare -a CHECK_RESULTS
-declare -g PR_URL="" PR_NUMBER="" CURRENT_VERSION="" NEXT_VERSION=""
+declare -g PR_URL="" PR_NUMBER="" CURRENT_VERSION="" RELEASE_VERSION=""
 declare -g TITLE="" MILESTONE="" LINKED_ISSUE="" ASSIGNEES="" REVIEWERS="" LABELS=""
 declare -g IS_INITIAL_RELEASE=false
 
@@ -112,13 +112,14 @@ get_yaml_value() {
 # === Version Functions ===
 
 get_current_version() {
-    # Get latest tag or default to v0.0.0
-    CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || echo "v0.0.0")
+    # Get latest tag or default to none
+    CURRENT_VERSION=$(git describe --tags --abbrev=0 2>/dev/null || true)
 
     # Special handling for initial release
-    if [[ "$CURRENT_VERSION" == "v0.0.0" ]]; then
+    if [[ -z "$CURRENT_VERSION" ]]; then
         IS_INITIAL_RELEASE=true
-        log_info "Initial release detected (v0.0.0)"
+        CURRENT_VERSION="v0.0.0"
+        log_info "Initial release detected (no existing tags)"
     fi
 
     # Validate version format
@@ -129,15 +130,15 @@ get_current_version() {
     log_info "Current version detected: $CURRENT_VERSION"
 }
 
-get_next_version() {
+get_release_version() {
     if $IS_INITIAL_RELEASE; then
-        NEXT_VERSION="v0.1.0"  # First real version after initial release
-        return
+        RELEASE_VERSION="v0.0.0"
+    else
+        local version="${CURRENT_VERSION#v}"
+        IFS='.' read -r major minor patch <<< "$version"
+        RELEASE_VERSION="v${major}.$((minor+1)).0"
     fi
-
-    local version="${CURRENT_VERSION#v}"
-    IFS='.' read -r major minor patch <<< "$version"
-    NEXT_VERSION="v${major}.$((minor+1)).0"
+    log_info "Release version: $RELEASE_VERSION"
 }
 
 validate_version_increment() {
@@ -146,8 +147,8 @@ validate_version_increment() {
         return
     fi
 
-    if [[ "$CURRENT_VERSION" == "$NEXT_VERSION" ]]; then
-        log_error "Version increment failed - current and next versions are identical"
+    if [[ "$CURRENT_VERSION" == "$RELEASE_VERSION" ]]; then
+        log_error "Version increment failed - current and release versions are identical"
     fi
     log_success "Version increment validated"
 }
@@ -219,13 +220,13 @@ generate_release_metadata() {
     local current_branch=$3
     local linked_issue=$4
     local current_version=$5
-    local next_version=$6
+    local release_version=$6
 
     cat <<EOF
 
 ## 🚀 Release Information
 - **Current Version**: \`${current_version}\`
-- **Release Version**: \`${next_version}\`
+- **Release Version**: \`${release_version}\`
 - **Milestone**: \`${milestone}\` – ${title}
 - **Source Branch**: \`${current_branch}\`
 - **Target Branch**: \`${TARGET_BRANCH}\`
@@ -245,7 +246,7 @@ generate_release_notes() {
 ## 📝 Release Notes
 This release includes all changes since \`${CURRENT_VERSION}\`. Key highlights:
 
-- Version bump from \`${CURRENT_VERSION}\` → \`${NEXT_VERSION}\`
+- Version bump from \`${CURRENT_VERSION}\` → \`${RELEASE_VERSION}\`
 - Automated release process execution
 - CI/CD pipeline activation
 
@@ -458,8 +459,8 @@ main() {
 
     # Get version information
     get_current_version
-    get_next_version
-    validate_version_increment "$CURRENT_VERSION" "$NEXT_VERSION"
+    get_release_version
+    validate_version_increment
 
     # Check for existing PR with robust error handling
     local pr_data=$(get_pr_data "$current_branch")
@@ -485,13 +486,13 @@ main() {
     fi
 
     # Generate PR content
-    local release_metadata=$(generate_release_metadata "$MILESTONE" "$TITLE" "$current_branch" "$LINKED_ISSUE" "$CURRENT_VERSION" "$NEXT_VERSION")
+    local release_metadata=$(generate_release_metadata "$MILESTONE" "$TITLE" "$current_branch" "$LINKED_ISSUE" "$CURRENT_VERSION" "$RELEASE_VERSION")
     local release_notes=$(generate_release_notes)
     local body_content=$(awk '/^---$/{f++; next} f==2' "$metadata_file")
     local full_body="${body_content//\{\{RELEASE_METADATA\}\}/$release_metadata}$release_notes"
 
     # Create or update PR
-    local pr_title="[RELEASE] $TITLE ($NEXT_VERSION)"
+    local pr_title="[RELEASE] $TITLE ($RELEASE_VERSION)"
     if [[ -z "$PR_NUMBER" ]]; then
         log_info "Creating new Release PR..."
         PR_URL=$(gh pr create \
@@ -535,7 +536,13 @@ main() {
         echo -e "║${NC}${GREEN}          🎉  R E L E A S E   R E A D Y           ${NC}${PURPLE}║"
         echo -e "╚══════════════════════════════════════════════════════════════╝${NC}"
         log_success "${ICON_RELEASE} Release PR successfully processed: ${BLUE}${PR_URL}${NC}"
-        echo -e "${ICON_VERSION} ${BLUE}After merge, version ${GREEN}${NEXT_VERSION}${BLUE} will be tagged automatically${NC}"
+
+        # Corrected message for initial release
+        if $IS_INITIAL_RELEASE; then
+            echo -e "${ICON_VERSION} ${BLUE}After merge, initial version ${GREEN}v0.0.0${BLUE} will be tagged${NC}"
+        else
+            echo -e "${ICON_VERSION} ${BLUE}After merge, version ${GREEN}${RELEASE_VERSION}${BLUE} will be tagged${NC}"
+        fi
     fi
 }
 

@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Changed from GH_PAT to built-in token
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
 
 permissions:
   contents: write
@@ -30,55 +30,71 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Configure Git
-        run: |
-          git config --global user.name "github-actions"
-          git config --global user.email "actions@github.com"
-
       - name: Determine version
         id: version
         run: |
-          if git describe --tags --abbrev=0 &>/dev/null; then
+          # First release detection
+          if [ -z "$(git tag -l)" ]; then
+            echo "release_version=0.0.0" >> $GITHUB_OUTPUT
+            echo "release_tag=v0.0.0" >> $GITHUB_OUTPUT
+            echo "is_initial_release=true" >> $GITHUB_OUTPUT
+          else
+            # Normal version bump
             LATEST_TAG=$(git describe --tags --abbrev=0)
             VERSION="${LATEST_TAG#v}"
             IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
-            NEW_VERSION="${MAJOR}.$((MINOR+1)).0"
-            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
-            echo "new_tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
-          else
-            echo "new_version=0.0.0" >> $GITHUB_OUTPUT
-            echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
+            RELEASE_VERSION="${MAJOR}.$((MINOR+1)).0"
+            echo "release_version=$RELEASE_VERSION" >> $GITHUB_OUTPUT
+            echo "release_tag=v$RELEASE_VERSION" >> $GITHUB_OUTPUT
+            echo "is_initial_release=false" >> $GITHUB_OUTPUT
           fi
 
-      - name: Update POM version
+      - name: Update POM
+        if: steps.version.outputs.is_initial_release != 'true'
         run: |
-          mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
+          mvn versions:set -DnewVersion=${{ steps.version.outputs.release_version }}
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
           git add pom.xml
-          git commit -m "chore: bump to ${{ steps.version.outputs.new_tag }}"
+          git commit -m "chore: release ${{ steps.version.outputs.release_tag }} [skip ci]"
           git push
 
-      - name: Create and push tag
+      - name: Create tag
         run: |
-          git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
-          git push origin ${{ steps.version.outputs.new_tag }}
+          git tag -a ${{ steps.version.outputs.release_tag }} \
+            -m "Release ${{ steps.version.outputs.release_tag }}"
+          git push origin ${{ steps.version.outputs.release_tag }}
 
       - name: Generate changelog
         run: |
-          if git tag --list | grep -q .; then
-            PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1 --skip=1))
-            CHANGELOG=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)")
+          if ${{ steps.version.outputs.is_initial_release }}; then
+            CHANGELOG="# Initial Release\n\nFirst version of the project"
           else
-            CHANGELOG=$(git log --pretty=format:"- %s (%h)")
+            PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
+            CHANGELOG="## Changes since $PREV_TAG\n\n"
+            CHANGELOG+=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)")
           fi
-          echo -e "## Release ${{ steps.version.outputs.new_tag }}\n\n$CHANGELOG" > CHANGELOG.md
+          echo -e "$CHANGELOG" > CHANGELOG.md
 
-      - name: Create GitHub release
-        uses: actions/create-release@v1
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+      - name: Create release
+        uses: softprops/action-gh-release@v1
         with:
-          tag_name: ${{ steps.version.outputs.new_tag }}
-          release_name: Release ${{ steps.version.outputs.new_tag }}
+          tag_name: ${{ steps.version.outputs.release_tag }}
+          name: Release ${{ steps.version.outputs.release_tag }}
           body_path: CHANGELOG.md
-          draft: false
-          prerelease: false
+          generate_release_notes: true
+
+      - name: Update issues
+        if: steps.version.outputs.is_initial_release != 'true'
+        run: |
+          # Find issues fixed since last release
+          PREV_TAG=$(git describe --tags --abbrev=0 HEAD~1)
+          CLOSED_ISSUES=$(gh api search/issues \
+            -q "repo:${{ github.repository }} is:closed closed:>$(git log -1 --format=%ai $PREV_TAG)" \
+            --jq '.items[].number' | tr '\n' ',' | sed 's/,$//')
+
+          # Add release notes to issues
+          for ISSUE in ${CLOSED_ISSUES//,/ }; do
+            gh issue comment $ISSUE \
+              --body "🚀 Released in [${{ steps.version.outputs.release_tag }}](https://github.com/${{ github.repository }}/releases/tag/${{ steps.version.outputs.release_tag}})"
+          done
