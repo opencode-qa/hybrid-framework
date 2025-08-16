@@ -380,12 +380,12 @@ main() {
     log_info "Labels: ${LABELS:-none}"
 
     local pr_data=$(get_pr_data "$current_branch")
-    PR_NUMBER=$(jq -r '.[0].number // empty' <<< "$pr_data")
-    local pr_state=$(jq -r '.[0].state // empty' <<< "$pr_data")
-    PR_URL=$(jq -r '.[0].url // empty' <<< "$pr_data")
-    local existing_labels=$(jq -r '[.[0].labels[].name] | join(",") // empty' <<< "$pr_data")
-    local existing_assignees=$(jq -r '[.[0].assignees[].login] | join(",") // empty' <<< "$pr_data")
-    local existing_reviewers=$(jq -r '[.[0].reviewRequests[].login] | join(",") // empty' <<< "$pr_data")
+    PR_NUMBER=$(jq -r '.[0]?.number // empty' <<< "$pr_data")
+    local pr_state=$(jq -r '.[0]?.state // empty' <<< "$pr_data")
+    PR_URL=$(jq -r '.[0]?.url // empty' <<< "$pr_data")
+    local existing_labels=$(jq -r '.[0]?.labels // [] | map(.name) | join(",")' <<< "$pr_data")
+    local existing_assignees=$(jq -r '.[0]?.assignees // [] | map(.login) | join(",")' <<< "$pr_data")
+    local existing_reviewers=$(jq -r '.[0]?.reviewRequests // [] | map(.login) | join(",")' <<< "$pr_data")
 
     if [[ -n "$PR_NUMBER" ]]; then
         log_success "Found existing Pull Request #$PR_NUMBER ($pr_state)"
