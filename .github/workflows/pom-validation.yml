@@ -2,13 +2,13 @@ name: "🧪 POM Validation"
 
 on:
   pull_request:
-    branches: [main, dev, 'feature/*']
+    branches: [main, dev, 'feature/*']  # Explicitly include dev
   push:
     branches: [main, dev]
 
 jobs:
   validate:
-    name: Validate POM
+    name: "🧪 POM Validation"  # Exact match for branch protection
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4

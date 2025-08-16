@@ -2,13 +2,13 @@ name: "🚀 Main CI Pipeline"
 
 on:
   pull_request:
-    branches: [main]
+    branches: [main, dev]  # Added dev branch
   push:
-    branches: [main]
+    branches: [main, dev]  # Added dev branch
 
 jobs:
   validate-pom:
-    name: "🧪 Validate POM"
+    name: "📦 Validate POM"  # Exact name for branch protection
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
