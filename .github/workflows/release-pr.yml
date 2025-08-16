@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  GH_TOKEN: ${{ secrets.GH_PAT }}
+  GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}  # Changed from GH_PAT to built-in token
 
 permissions:
   contents: write
@@ -22,6 +22,7 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+          token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Setup Java
         uses: actions/setup-java@v4
@@ -29,13 +30,10 @@ jobs:
           distribution: temurin
           java-version: 21
 
-      - name: Authenticate GitHub CLI
-        env:
-          GH_TOKEN: ${{ secrets.GH_PAT }}
+      - name: Configure Git
         run: |
-          # Secure authentication without file creation
-          gh auth login --with-token <<< "${GH_TOKEN}"
-          gh auth status
+          git config --global user.name "github-actions"
+          git config --global user.email "actions@github.com"
 
       - name: Determine version
         id: version
@@ -55,13 +53,11 @@ jobs:
       - name: Update POM version
         run: |
           mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
-          git config user.name "github-actions"
-          git config user.email "actions@github.com"
           git add pom.xml
           git commit -m "chore: bump to ${{ steps.version.outputs.new_tag }}"
           git push
 
-      - name: Create release tag
+      - name: Create and push tag
         run: |
           git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
           git push origin ${{ steps.version.outputs.new_tag }}
@@ -77,9 +73,12 @@ jobs:
           echo -e "## Release ${{ steps.version.outputs.new_tag }}\n\n$CHANGELOG" > CHANGELOG.md
 
       - name: Create GitHub release
-        uses: softprops/action-gh-release@v1
+        uses: actions/create-release@v1
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         with:
           tag_name: ${{ steps.version.outputs.new_tag }}
-          name: Release ${{ steps.version.outputs.new_tag }}
+          release_name: Release ${{ steps.version.outputs.new_tag }}
           body_path: CHANGELOG.md
-          generate_release_notes: true
+          draft: false
+          prerelease: false
