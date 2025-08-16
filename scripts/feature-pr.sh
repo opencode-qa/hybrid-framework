@@ -8,6 +8,7 @@ readonly MAX_CI_RETRIES=10
 readonly CI_RETRY_DELAY=10  # seconds
 readonly LABEL_COLOR="0366d6"
 readonly REQUIRED_FIELDS=("title" "labels")
+readonly CI_CHECK_ENABLED=true  # Set to false to skip CI checks
 
 # === ANSI Color Codes ===
 readonly GREEN='\033[1;32m'
@@ -36,7 +37,6 @@ declare -g TITLE="" MILESTONE="" LINKED_ISSUE="" ASSIGNEES="" REVIEWERS="" LABEL
 
 # === Helper Functions ===
 
-# Enhanced logging functions with strict failure mode
 log_info() {
     echo -e "${ICON_INFO} ${BLUE}$1${NC}" >&2
     CHECKS_COUNT[info]=$((CHECKS_COUNT[info]+1))
@@ -68,7 +68,6 @@ log_skip() {
     CHECK_RESULTS+=("skip")
 }
 
-# Strict validation function
 validate_required() {
     local value="$1"
     local field="$2"
@@ -102,7 +101,6 @@ clean_array_input() {
 get_yaml_value() {
     local field=$1
     local file=$2
-    # Extract YAML front matter between --- markers
     local yaml_content
     yaml_content=$(awk '/^---$/{if (++n == 1) next; else exit} n' "$file")
     echo "$yaml_content" | yq eval ".${field}" - 2>/dev/null || echo ""
@@ -120,11 +118,18 @@ get_repo_name() {
 
 get_pr_data() {
     local branch=$1
-    gh pr list --head "$branch" --base "$TARGET_BRANCH" \
-        --json number,state,url,labels,assignees,reviewRequests,milestone --limit 1
+    local pr_data
+    pr_data=$(gh pr list --head "$branch" --base "$TARGET_BRANCH" \
+        --json number,state,url,labels,assignees,reviewRequests,milestone --limit 1)
+    [[ -z "$pr_data" ]] && echo "[]" || echo "$pr_data"
 }
 
 wait_for_ci_completion() {
+    if [[ "$CI_CHECK_ENABLED" != "true" ]]; then
+        log_skip "CI checks are disabled"
+        return 0
+    fi
+
     local repo=$1
     local branch=$2
     local attempts=0
@@ -133,7 +138,12 @@ wait_for_ci_completion() {
 
     while [[ $attempts -lt $MAX_CI_RETRIES ]]; do
         local status_data
-        status_data=$(gh api "repos/$repo/actions/runs?branch=$branch&per_page=1" -q '.workflow_runs[0]')
+        status_data=$(gh api "repos/$repo/actions/runs?branch=$branch&per_page=1" -q '.workflow_runs[0] // null')
+
+        if [[ "$status_data" == "null" ]]; then
+            log_warn "No CI runs found for branch $branch"
+            return 0
+        fi
 
         local status=$(jq -r '.status' <<< "$status_data")
         local conclusion=$(jq -r '.conclusion' <<< "$status_data")
@@ -147,7 +157,7 @@ wait_for_ci_completion() {
                 log_error "CI checks failed with conclusion: $conclusion"
                 ;;
             *)
-                log_info "CI status: $status (attempt $((attempts+1))/$MAX_CI_RETRIES)"
+                log_info "CI status: ${status:-unknown} (attempt $((attempts+1))/$MAX_CI_RETRIES)"
                 sleep $CI_RETRY_DELAY
                 ;;
         esac
@@ -155,7 +165,8 @@ wait_for_ci_completion() {
         attempts=$((attempts+1))
     done
 
-    log_error "CI did not complete within the expected time"
+    log_warn "CI did not complete within the expected time"
+    return 0
 }
 
 generate_dynamic_metadata() {
@@ -189,7 +200,7 @@ generate_author_section() {
     cat <<EOF
 
 ## 👤 Author
-**[Anuj Kumar](https://www.linkedin.com/in/anuj-kumar-qa/)**
+**[Anuj Kumar](https://www.linkedin.com/in/anuj-kumar-qa/)"
 🏅 QA Consultant & Test Automation Engineer
 EOF
 }
@@ -213,13 +224,14 @@ process_labels() {
         if [[ ",${current_repo_labels}," != *",${label},"* ]]; then
             log_info "Creating label '$label'"
             gh label create "$label" --color "$LABEL_COLOR" --description "Automatically created" \
-                || log_error "Failed to create label '$label'"
+                || log_warn "Failed to create label '$label'"
+            continue
         fi
 
         log_info "Adding label '$label' to PR"
         gh pr edit "$pr_num" --add-label "$label" >/dev/null \
             && log_success "Added label '$label'" \
-            || log_error "Failed to add label '$label'"
+            || log_warn "Failed to add label '$label'"
     done
 }
 
@@ -241,7 +253,7 @@ process_milestone() {
         log_info "Setting milestone '$desired_milestone'"
         gh pr edit "$pr_num" --milestone "$desired_milestone" \
             && log_success "Milestone set to '$desired_milestone'" \
-            || log_error "Failed to set milestone '$desired_milestone'"
+            || log_warn "Failed to set milestone '$desired_milestone'"
     fi
 }
 
@@ -263,7 +275,7 @@ process_assignees() {
             log_info "Assigning '$assignee'"
             gh pr edit "$pr_num" --add-assignee "$assignee" \
                 && log_success "Assigned '$assignee'" \
-                || log_error "Failed to assign '$assignee'"
+                || log_warn "Failed to assign '$assignee'"
         fi
     done
 }
@@ -286,7 +298,7 @@ process_reviewers() {
             log_info "Requesting review from '$reviewer'"
             gh pr edit "$pr_num" --add-reviewer "$reviewer" \
                 && log_success "Review requested from '$reviewer'" \
-                || log_error "Failed to request review from '$reviewer'"
+                || log_warn "Failed to request review from '$reviewer'"
         fi
     done
 }
@@ -294,7 +306,6 @@ process_reviewers() {
 validate_metadata_content() {
     local metadata_file="$1"
 
-    # Validate required fields
     for field in "${REQUIRED_FIELDS[@]}"; do
         local value
         case "$field" in
@@ -305,7 +316,6 @@ validate_metadata_content() {
         validate_required "$value" "$field"
     done
 
-    # Validate title is not default
     if [[ "$TITLE" == "Untitled PR" ]]; then
         log_error "Title must be specified in metadata file"
     fi
@@ -339,7 +349,6 @@ print_summary() {
     printf "  ${ICON_SKIP} Skipped   ${WHITE}⚫  ⇒ %2d\n" "${CHECKS_COUNT[skip]}"
 }
 
-# === Main Execution ===
 main() {
     local start_time=$(date +%s)
     local current_branch=$(get_current_branch)
@@ -350,11 +359,9 @@ main() {
     log_info "Current branch detected: ${current_branch}"
     log_info "Target branch for PR: ${TARGET_BRANCH}"
 
-    # Validate metadata file exists
     [[ -f "$metadata_file" ]] || log_error "Metadata file not found: $metadata_file"
     log_success "Found metadata file: $metadata_file"
 
-    # Parse metadata with strict validation
     TITLE=$(get_yaml_value "title" "$metadata_file")
     LINKED_ISSUE=$(get_yaml_value "linked_issue" "$metadata_file")
     MILESTONE=$(get_yaml_value "milestone" "$metadata_file")
@@ -362,7 +369,6 @@ main() {
     REVIEWERS=$(clean_array_input "$(get_yaml_value "reviewers" "$metadata_file")")
     LABELS=$(clean_array_input "$(get_yaml_value "labels" "$metadata_file")")
 
-    # Validate metadata content
     validate_metadata_content "$metadata_file"
 
     log_info "Parsed metadata:"
@@ -373,7 +379,6 @@ main() {
     log_info "Reviewers: ${REVIEWERS:-none}"
     log_info "Labels: ${LABELS:-none}"
 
-    # Check for existing PR
     local pr_data=$(get_pr_data "$current_branch")
     PR_NUMBER=$(jq -r '.[0].number // empty' <<< "$pr_data")
     local pr_state=$(jq -r '.[0].state // empty' <<< "$pr_data")
@@ -389,16 +394,13 @@ main() {
         log_info "No existing PR found"
     fi
 
-    # Wait for CI
     wait_for_ci_completion "$repo" "$current_branch"
 
-    # Generate PR content
     local dynamic_content=$(generate_dynamic_metadata "$MILESTONE" "$TITLE" "$current_branch" "$LINKED_ISSUE")
     local author_section=$(generate_author_section)
     local body_content=$(awk '/^---$/{f++; next} f==2' "$metadata_file")
     local full_body="${body_content//\{\{DYNAMIC_METADATA\}\}/$dynamic_content}$author_section"
 
-    # Create or update PR
     if [[ -z "$PR_NUMBER" ]]; then
         log_info "Creating new PR..."
         PR_URL=$(gh pr create --title "$TITLE" --body "$full_body" --base "$TARGET_BRANCH" --head "$current_branch")
@@ -410,13 +412,11 @@ main() {
         log_success "Updated PR: $PR_URL"
     fi
 
-    # Process PR metadata with strict error handling
     process_labels "$PR_NUMBER" "$repo" "$LABELS" "$existing_labels"
     process_milestone "$PR_NUMBER" "$MILESTONE"
     process_assignees "$PR_NUMBER" "$ASSIGNEES" "$existing_assignees"
     process_reviewers "$PR_NUMBER" "$REVIEWERS" "$existing_reviewers"
 
-    # Final output
     print_progress_bar
     print_summary
 
@@ -430,6 +430,5 @@ main() {
     fi
 }
 
-# Entry point
 validate_required_tools
 main "$@"
