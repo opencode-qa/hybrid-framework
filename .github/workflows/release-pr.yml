@@ -1,0 +1,77 @@
+name: "🚀 Release Automation"
+
+on:
+  push:
+    branches: [main]
+    tags-ignore: ['*']
+  workflow_dispatch:
+
+env:
+  GH_TOKEN: ${{ secrets.GH_PAT }}
+
+permissions:
+  contents: write
+  pull-requests: write
+  issues: write
+
+jobs:
+  release:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Setup Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: 21
+
+      - name: Authenticate
+        run: |
+          echo "$GH_TOKEN" | gh auth login --with-token
+          gh auth status
+
+      - name: Determine version
+        id: version
+        run: |
+          if git describe --tags --abbrev=0 &>/dev/null; then
+            LATEST_TAG=$(git describe --tags --abbrev=0)
+            VERSION="${LATEST_TAG#v}"
+            IFS='.' read -r MAJOR MINOR PATCH <<< "$VERSION"
+            NEW_VERSION="${MAJOR}.$((MINOR+1)).0"
+            echo "new_version=$NEW_VERSION" >> $GITHUB_OUTPUT
+            echo "new_tag=v$NEW_VERSION" >> $GITHUB_OUTPUT
+          else
+            echo "new_version=0.0.0" >> $GITHUB_OUTPUT
+            echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
+          fi
+
+      - name: Update POM
+        run: |
+          mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
+          git config user.name "github-actions"
+          git config user.email "actions@github.com"
+          git add pom.xml
+          git commit -m "chore: bump to ${{ steps.version.outputs.new_tag }}"
+          git push
+
+      - name: Create tag
+        run: git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
+
+      - name: Generate changelog
+        run: |
+          PREV_TAG=$(git describe --abbrev=0 --tags $(git rev-list --tags --max-count=1 --skip=1) || echo "")
+          CHANGELOG="## Changes since $PREV_TAG\n\n"
+          CHANGELOG+=$(git log $PREV_TAG..HEAD --pretty=format:"- %s (%h)")
+          echo -e "$CHANGELOG" > CHANGELOG.md
+
+      - name: Create release
+        uses: softprops/action-gh-release@v1
+        with:
+          tag_name: ${{ steps.version.outputs.new_tag }}
+          name: Release ${{ steps.version.outputs.new_tag }}
+          body_path: CHANGELOG.md
+          generate_release_notes: true
