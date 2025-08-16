@@ -18,7 +18,7 @@ jobs:
   release:
     runs-on: ubuntu-latest
     steps:
-      - name: Checkout
+      - name: Checkout code
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
@@ -33,13 +33,9 @@ jobs:
         env:
           GH_TOKEN: ${{ secrets.GH_PAT }}
         run: |
-          echo "${GH_TOKEN}" > token.txt
-          gh auth login --with-token < token.txt
-          rm token.txt
+          # Secure authentication without file creation
+          gh auth login --with-token <<< "${GH_TOKEN}"
           gh auth status
-
-      - name: Debug files
-        run: ls -la scripts/
 
       - name: Determine version
         id: version
@@ -56,13 +52,7 @@ jobs:
             echo "new_tag=v0.0.0" >> $GITHUB_OUTPUT
           fi
 
-      - name: Create first tag if none exists
-        if: ${{ !contains(steps.version.outputs.new_tag, '0.0.0') }}
-        run: |
-          git tag v0.0.0
-          git push origin v0.0.0
-
-      - name: Update POM
+      - name: Update POM version
         run: |
           mvn versions:set -DnewVersion=${{ steps.version.outputs.new_version }}
           git config user.name "github-actions"
@@ -71,7 +61,7 @@ jobs:
           git commit -m "chore: bump to ${{ steps.version.outputs.new_tag }}"
           git push
 
-      - name: Create tag
+      - name: Create release tag
         run: |
           git tag -a ${{ steps.version.outputs.new_tag }} -m "Release ${{ steps.version.outputs.new_tag }}"
           git push origin ${{ steps.version.outputs.new_tag }}
@@ -84,9 +74,9 @@ jobs:
           else
             CHANGELOG=$(git log --pretty=format:"- %s (%h)")
           fi
-          echo -e "## Full Changelog\n\n$CHANGELOG" > CHANGELOG.md
+          echo -e "## Release ${{ steps.version.outputs.new_tag }}\n\n$CHANGELOG" > CHANGELOG.md
 
-      - name: Create release
+      - name: Create GitHub release
         uses: softprops/action-gh-release@v1
         with:
           tag_name: ${{ steps.version.outputs.new_tag }}
