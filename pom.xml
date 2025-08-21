@@ -1,9 +1,12 @@
-<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
-         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 https://maven.apache.org/xsd/maven-4.0.0.xsd">
+<?xml version="1.0" encoding="UTF-8"?>
+<project xmlns="http://maven.apache.org/POM/4.0.0"
+         xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+         xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/xsd/maven-4.0.0.xsd">
+
     <modelVersion>4.0.0</modelVersion>
-    <groupId>opencode-qa</groupId>
+    <groupId>opencode</groupId>
     <artifactId>hybrid-framework</artifactId>
-    <version>0.0.0</version>
+    <version>0.0.0-SNAPSHOT</version>
 
     <properties>
         <project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
@@ -12,6 +15,10 @@
         <testng.version>7.11.0</testng.version>
         <maven.compiler.plugin.version>3.14.0</maven.compiler.plugin.version>
         <maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
+        <maven.surefire.plugin.version>3.5.3</maven.surefire.plugin.version>
+        <web.driver.manager.version>6.2.0</web.driver.manager.version>
+        <log4j.version>2.25.1</log4j.version>
+        <allure.version>2.29.1</allure.version>
     </properties>
 
     <dependencies>
@@ -21,12 +28,41 @@
             <artifactId>selenium-java</artifactId>
             <version>${selenium.version}</version>
         </dependency>
+        <!--Web Driver Manager-->
+        <dependency>
+            <groupId>io.github.bonigarcia</groupId>
+            <artifactId>webdrivermanager</artifactId>
+            <version>${web.driver.manager.version}</version>
+        </dependency>
         <!-- TestNG dependency -->
         <dependency>
             <groupId>org.testng</groupId>
             <artifactId>testng</artifactId>
             <version>${testng.version}</version>
             <scope>test</scope>
+        </dependency>
+        <!--log4j logging -->
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-core</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-api</artifactId>
+            <version>${log4j.version}</version>
+        </dependency>
+        <dependency>
+            <groupId>org.apache.logging.log4j</groupId>
+            <artifactId>log4j-slf4j2-impl</artifactId>
+            <version>${log4j.version}</version>
+            <scope>compile</scope>
+        </dependency>
+        <!-- allure reporting-->
+        <dependency>
+            <groupId>io.qameta.allure</groupId>
+            <artifactId>allure-testng</artifactId>
+            <version>${allure.version}</version>
         </dependency>
     </dependencies>
 
@@ -44,6 +80,22 @@
             <plugin>
                 <artifactId>maven-clean-plugin</artifactId>
                 <version>${maven.clean.plugin.version}</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-jar-plugin</artifactId>
+                <version>3.4.2</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-install-plugin</artifactId>
+                <version>3.1.4</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-surefire-plugin</artifactId>
+                <version>${maven.surefire.plugin.version}</version>
+            </plugin>
+            <plugin>
+                <artifactId>maven-resources-plugin</artifactId>
+                <version>3.3.1</version>
             </plugin>
         </plugins>
     </build>
