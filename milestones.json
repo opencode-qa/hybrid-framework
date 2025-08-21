@@ -1,0 +1,14 @@
+[
+  { "title": "v0.0.0", "description": "Maven initial configuration", "due_on": "2025-08-23T23:59:59Z", "state": "open", "labels": ["setup", "maven"] },
+  { "title": "v0.1.0", "description": "Simple Test Creation", "due_on": "2025-08-24T23:59:59Z", "state": "open", "labels": ["test", "framework"] },
+  { "title": "v0.2.0", "description": "CI setup", "due_on": "2025-08-27T23:59:59Z", "state": "open", "labels": ["ci", "setup"] },
+  { "title": "v0.3.0", "description": "Log4j2 integration", "due_on": "2025-08-30T23:59:59Z", "state": "open", "labels": ["logging", "integration"] },
+  { "title": "v0.4.0", "description": "Exception Handling", "due_on": "2025-09-03T23:59:59Z", "state": "open", "labels": ["error-handling", "framework"] },
+  { "title": "v0.5.0", "description": "Driver Management", "due_on": "2025-09-06T23:59:59Z", "state": "open", "labels": ["driver", "framework"] },
+  { "title": "v0.6.0", "description": "Page Object Model", "due_on": "2025-09-09T23:59:59Z", "state": "open", "labels": ["pom", "framework"] },
+  { "title": "v0.7.0", "description": "Wait Utilities", "due_on": "2025-09-12T23:59:59Z", "state": "open", "labels": ["waits", "utilities"] },
+  { "title": "v0.8.0", "description": "Screenshot Utility", "due_on": "2025-09-15T23:59:59Z", "state": "open", "labels": ["screenshot", "utilities"] },
+  { "title": "v0.9.0", "description": "TestNG Listeners", "due_on": "2025-09-18T23:59:59Z", "state": "open", "labels": ["testng", "listeners"] },
+  { "title": "v1.0.0", "description": "Allure Integration", "due_on": "2025-09-21T23:59:59Z", "state": "open", "labels": ["reporting", "integration"] },
+  { "title": "v1.1.0", "description": "Retry Mechanism", "due_on": "2025-09-24T23:59:59Z", "state": "open", "labels": ["retry", "framework"] }
+]

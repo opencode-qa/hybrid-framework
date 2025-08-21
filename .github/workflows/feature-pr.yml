@@ -1,0 +1,56 @@
+name: "📦 Feature Branch PR Check"
+
+on:
+  push:
+    branches:
+      - 'feature/*'
+      - dev
+  pull_request:
+    branches:
+      - dev
+      - 'feature/*'
+    paths:
+      - '**/*.xml'
+
+permissions:
+  contents: read
+  actions: read
+
+jobs:
+  build:
+    name: 📦 Feature Branch PR Check  # 👈 This must exactly match the required status check name
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: 📂 Checkout Code
+        uses: actions/checkout@v4
+
+      - name: ☕ Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: 21
+
+      - name: 📦 Cache Maven Dependencies
+        uses: actions/cache@v4
+        with:
+          path: ~/.m2/repository
+          key: ${{ runner.os }}-maven-${{ hashFiles('**/pom.xml') }}
+          restore-keys: |
+            ${{ runner.os }}-maven-
+
+      - name: 📥 Pre-fetch Dependencies
+        run: mvn dependency:go-offline
+
+      - name: 🛠 Build and Test
+        run: mvn clean verify  # ✅ Will succeed even if no tests exist
+
+      - name: 📊 Upload Test Results
+        if: always()
+        continue-on-error: true
+        uses: actions/upload-artifact@v4
+        with:
+          name: test-results
+          path: |
+            target/surefire-reports/
+            target/failsafe-reports/
