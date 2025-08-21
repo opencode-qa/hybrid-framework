@@ -1,0 +1,391 @@
+name: "Release Automation"
+
+on:
+  workflow_run:
+    workflows: ["Main CI Pipeline"]
+    branches: [main]
+    types: [completed]
+
+env:
+  RELEASE_CONTEXT: release-automation
+  GPG_TTY: $(tty)
+
+jobs:
+  release:
+    if: ${{ github.event.workflow_run.conclusion == 'success' }}
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+      issues: write
+
+    steps:
+      # ----------------------------
+      # 1. Validate environment
+      # ----------------------------
+      - name: Validate environment
+        run: |
+          echo "Validating environment..."
+          if [ -z "${{ secrets.GH_PAT }}" ]; then
+            echo "::error::Secret GH_PAT is missing"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GPG_PRIVATE_KEY }}" ]; then
+            echo "::error::Secret GPG_PRIVATE_KEY is missing"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GPG_KEY_ID }}" ]; then
+            echo "::error::Secret GPG_KEY_ID is missing"
+            exit 1
+          fi
+          if [ -z "${{ secrets.GPG_PASSPHRASE }}" ]; then
+            echo "::error::Secret GPG_PASSPHRASE is missing"
+            exit 1
+          fi
+          echo "✓ Environment validation passed"
+      # ----------------------------
+      # 2. Checkout repository
+      # ----------------------------
+      - name: Checkout repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+          token: ${{ secrets.GH_PAT }}
+
+      # ----------------------------
+      # 3. Debug - Check environment
+      # ----------------------------
+      - name: Debug - Check environment
+        run: |
+          echo "Working directory: $(pwd)"
+          echo "Files in directory:"
+          ls -la
+          echo "POM exists: $(test -f pom.xml && echo 'YES' || echo 'NO')"
+          if [ -f "pom.xml" ]; then
+            echo "POM content (first 20 lines):"
+            head -20 pom.xml
+            echo "Current version from pom.xml:"
+            grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1 || echo "Cannot extract version"
+          fi
+      # ----------------------------
+      # 4. Import and configure GPG
+      # ----------------------------
+      - name: Import GPG Key
+        run: |
+          echo "${{ secrets.GPG_PRIVATE_KEY }}" | gpg --batch --import
+          gpg --list-secret-keys --keyid-format LONG
+      - name: Configure GPG for headless
+        run: |
+          mkdir -p ~/.gnupg
+          echo "use-agent" > ~/.gnupg/gpg.conf
+          echo "pinentry-mode loopback" >> ~/.gnupg/gpg.conf
+          echo "allow-loopback-pinentry" > ~/.gnupg/gpg-agent.conf
+          gpg-connect-agent reloadagent /bye
+      # ----------------------------
+      # 5. Setup Git and GitHub CLI
+      # ----------------------------
+      - name: Setup Git and GitHub CLI
+        run: |
+          git config user.name "Release Automation"
+          git config user.email "release-automation@users.noreply.github.com"
+          git config commit.gpgsign true
+          git config user.signingkey ${{ secrets.GPG_KEY_ID }}
+          gh auth login --with-token <<< "${{ secrets.GH_PAT }}"
+      # ----------------------------
+      # 6. Test GPG signing
+      # ----------------------------
+      - name: Test GPG signing
+        run: |
+          echo "test" > test.txt
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --sign test.txt
+          rm test.txt test.txt.gpg
+          echo "✓ GPG signing test passed"
+      # ----------------------------
+      # 7. Determine next version
+      # ----------------------------
+      - name: Determine next version
+        id: version
+        run: |
+          set -euo pipefail
+          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || true)
+          echo "Latest tag: ${LATEST_TAG:-none}"
+          if [ -z "$LATEST_TAG" ]; then
+            NEXT_VERSION="0.0.0"
+            INITIAL_RELEASE=true
+          else
+            IFS='.' read -r MAJOR MINOR PATCH <<< "${LATEST_TAG#v}"
+            COMMITS=$(git log "$LATEST_TAG"..HEAD --oneline)
+            if echo "$COMMITS" | grep -q "BREAKING CHANGE"; then
+              MAJOR=$((MAJOR+1))
+              MINOR=0
+              PATCH=0
+            elif echo "$COMMITS" | grep -q "^feat"; then
+              MINOR=$((MINOR+1))
+              PATCH=0
+            else
+              PATCH=$((PATCH+1))
+            fi
+            if [ "$MINOR" -gt 9 ]; then
+              MAJOR=$((MAJOR+1))
+              MINOR=0
+              PATCH=0
+            fi
+            NEXT_VERSION="$MAJOR.$MINOR.$PATCH"
+            INITIAL_RELEASE=false
+          fi
+          echo "new_tag=v$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "next_version=$NEXT_VERSION" >> $GITHUB_OUTPUT
+          echo "initial_release=$INITIAL_RELEASE" >> $GITHUB_OUTPUT
+          echo "✓ Next version: $NEXT_VERSION"
+      # ----------------------------
+      # 8. Verify tag does not exist
+      # ----------------------------
+      - name: Verify tag does not exist
+        run: |
+          if git rev-parse "refs/tags/${{ steps.version.outputs.new_tag }}" >/dev/null 2>&1; then
+            echo "::error::Tag ${{ steps.version.outputs.new_tag }} already exists"
+            exit 1
+          fi
+          echo "✓ Tag ${{ steps.version.outputs.new_tag }} does not exist"
+      # ----------------------------
+      # 9. Check current version
+      # ----------------------------
+      - name: Check current version
+        id: current_version
+        run: |
+          # Extract version directly from pom.xml
+          if [ -f "pom.xml" ]; then
+            CURRENT_VERSION=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+            echo "Extracted from pom.xml: $CURRENT_VERSION"
+            # Also try Maven if available
+            if command -v mvn &> /dev/null; then
+              MVN_VERSION=$(mvn help:evaluate -Dexpression=project.version -q -DforceStdout 2>/dev/null || echo "ERROR")
+              echo "From Maven: $MVN_VERSION"
+            fi
+          else
+            echo "::error::pom.xml not found"
+            exit 1
+          fi
+          if [ -z "$CURRENT_VERSION" ]; then
+            echo "::error::Could not extract current version from pom.xml"
+            exit 1
+          fi
+          if [[ ! "$CURRENT_VERSION" == *"SNAPSHOT" ]]; then
+            echo "::error::Current version is not a SNAPSHOT: $CURRENT_VERSION"
+            exit 1
+          fi
+          echo "current_version=$CURRENT_VERSION" >> $GITHUB_OUTPUT
+          echo "✓ Current version: $CURRENT_VERSION"
+      # ----------------------------
+      # 10. Create release branch
+      # ----------------------------
+      - name: Create release branch
+        run: |
+          RELEASE_BRANCH="release/${{ steps.version.outputs.new_tag }}"
+          git checkout -b "$RELEASE_BRANCH"
+          echo "RELEASE_BRANCH=$RELEASE_BRANCH" >> $GITHUB_ENV
+          echo "✓ Release branch created: $RELEASE_BRANCH"
+      # ----------------------------
+      # 11. Update version in pom.xml - GUARANTEED METHOD
+      # ----------------------------
+      - name: Update version in pom.xml
+        run: |
+          CURRENT_VERSION="${{ steps.current_version.outputs.current_version }}"
+          NEW_VERSION="${{ steps.version.outputs.next_version }}"
+          echo "Updating from $CURRENT_VERSION to $NEW_VERSION"
+          # Backup the original pom.xml
+          cp pom.xml pom.xml.backup
+          # Method 1: Use Maven versions plugin
+          echo "Trying Maven versions:set..."
+          if mvn versions:set -DnewVersion="$NEW_VERSION" -DgenerateBackupPoms=false; then
+            echo "Maven versions:set completed"
+          else
+            echo "Maven versions:set failed or had no effect"
+          fi
+          # Check if Maven actually changed the file
+          if ! grep -q "<version>$NEW_VERSION</version>" pom.xml; then
+            echo "Maven didn't update the version, trying manual methods..."
+            # Method 2: Try exact version tag replacement
+            if grep -q "<version>$CURRENT_VERSION</version>" pom.xml; then
+              echo "Using exact version replacement..."
+              # Use perl for more reliable regex matching
+              perl -pi -e "s|<version>$CURRENT_VERSION</version>|<version>$NEW_VERSION</version>|g" pom.xml
+            else
+              # Method 3: Try more flexible replacement
+              echo "Using flexible version replacement..."
+              perl -pi -e "s|$CURRENT_VERSION|$NEW_VERSION|g" pom.xml
+            fi
+          fi
+          # Verify the change was made
+          if ! grep -q "<version>$NEW_VERSION</version>" pom.xml; then
+            echo "::error::Failed to update version in pom.xml after all attempts"
+            echo "Current content:"
+            cat pom.xml
+            echo "Reverting to backup..."
+            mv pom.xml.backup pom.xml
+            exit 1
+          fi
+          rm pom.xml.backup
+          echo "✓ Version updated successfully to $NEW_VERSION"
+      # ----------------------------
+      # 12. Verify pom.xml changes
+      # ----------------------------
+      - name: Verify pom.xml changes
+        run: |
+          # Check if pom.xml was modified
+          if ! git diff --name-only HEAD | grep -q "pom.xml"; then
+            echo "::error::pom.xml was not modified after update attempt"
+            echo "Current content:"
+            cat pom.xml
+            exit 1
+          fi
+          # Verify the new version is correct
+          UPDATED_VERSION=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+          echo "Updated version in pom.xml: $UPDATED_VERSION"
+          if [ "$UPDATED_VERSION" != "${{ steps.version.outputs.next_version }}" ]; then
+            echo "::error::Version mismatch. Expected: ${{ steps.version.outputs.next_version }}, Got: $UPDATED_VERSION"
+            exit 1
+          fi
+          echo "✓ pom.xml changes verified"
+      # ----------------------------
+      # 13. Commit version bump
+      # ----------------------------
+      - name: Commit version bump
+        run: |
+          git add pom.xml
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --yes --output /dev/null --clear-sign /dev/null
+          git commit -S -m "release: bump version to ${{ steps.version.outputs.next_version }}"
+          git push -u origin "${{ env.RELEASE_BRANCH }}"
+          echo "BUMP_COMMIT=$(git rev-parse HEAD)" >> $GITHUB_ENV
+          echo "✓ Version bump committed and pushed"
+      # ----------------------------
+      # 14. Create and push tag
+      # ----------------------------
+      - name: Create and push tag
+        run: |
+          TAG="${{ steps.version.outputs.new_tag }}"
+          echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --yes --output /dev/null --clear-sign /dev/null
+          git tag -s "$TAG" -m "Release $TAG"
+          git push origin "$TAG"
+          echo "✓ Tag created and pushed: $TAG"
+      # ----------------------------
+      # 15. Create GitHub release
+      # ----------------------------
+      - name: Create GitHub release
+        run: |
+          gh release create "${{ steps.version.outputs.new_tag }}" \
+            --title "Release ${{ steps.version.outputs.new_tag }}" \
+            --notes "Automated release ${{ steps.version.outputs.new_tag }}"
+          echo "✓ GitHub release created"
+      # ----------------------------
+      # 16. Create and merge PR to main
+      # ----------------------------
+      - name: Create PR to main
+        run: |
+          gh pr create \
+            --base main \
+            --head "${{ env.RELEASE_BRANCH }}" \
+            --title "Release ${{ steps.version.outputs.new_tag }}" \
+            --body "Automated release PR for version ${{ steps.version.outputs.new_tag }}"
+          echo "✓ PR created"
+      - name: Merge PR to main
+        run: |
+          # Try to auto-merge, but don't fail if branch protection prevents it
+          gh pr merge "${{ env.RELEASE_BRANCH }}" --squash --auto || \
+            echo "PR could not be auto-merged (may require manual approval)"
+          echo "✓ PR merge attempted"
+      # ----------------------------
+      # 17. Update dev branch
+      # ----------------------------
+      - name: Checkout dev branch
+        run: |
+          git fetch origin dev
+          git checkout dev
+          git pull origin dev
+          echo "✓ Checked out and updated dev branch"
+      - name: Check if dev update is needed
+        id: check_dev_update
+        run: |
+          RELEASE_VERSION="${{ steps.version.outputs.next_version }}"
+          IFS='.' read -r MAJOR MINOR PATCH <<< "$RELEASE_VERSION"
+          # Determine next snapshot version
+          if [ "$MINOR" -eq 9 ]; then
+            NEXT_SNAPSHOT="$((MAJOR+1)).0.0-SNAPSHOT"
+          else
+            NEXT_SNAPSHOT="$MAJOR.$((MINOR+1)).0-SNAPSHOT"
+          fi
+          # Get current dev version
+          CURRENT_VERSION=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+          echo "Current dev version: $CURRENT_VERSION"
+          echo "Next snapshot version: $NEXT_SNAPSHOT"
+          # Check if update is needed
+          if [ "$CURRENT_VERSION" = "$NEXT_SNAPSHOT" ]; then
+            echo "Dev version is already $NEXT_SNAPSHOT, no update needed"
+            echo "update_needed=false" >> $GITHUB_OUTPUT
+          else
+            echo "Dev version needs update to $NEXT_SNAPSHOT"
+            echo "update_needed=true" >> $GITHUB_OUTPUT
+            echo "next_snapshot=$NEXT_SNAPSHOT" >> $GITHUB_OUTPUT
+          fi
+      - name: Update dev to next snapshot version
+        if: steps.check_dev_update.outputs.update_needed == 'true'
+        run: |
+          NEXT_SNAPSHOT="${{ steps.check_dev_update.outputs.next_snapshot }}"
+          # Create a temporary branch for the snapshot update
+          SNAPSHOT_BRANCH="snapshot-update-${{ steps.version.outputs.new_tag }}"
+          git checkout -b "$SNAPSHOT_BRANCH"
+          # Get current version for precise replacement
+          CURRENT_VERSION=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+          echo "Updating from $CURRENT_VERSION to $NEXT_SNAPSHOT"
+          # Use perl for reliable replacement
+          if grep -q "<version>$CURRENT_VERSION</version>" pom.xml; then
+            perl -pi -e "s|<version>$CURRENT_VERSION</version>|<version>$NEXT_SNAPSHOT</version>|g" pom.xml
+          else
+            perl -pi -e "s|$CURRENT_VERSION|$NEXT_SNAPSHOT|g" pom.xml
+          fi
+          # Verify the change
+          if ! grep -q "<version>$NEXT_SNAPSHOT</version>" pom.xml; then
+            echo "::error::Failed to update dev version"
+            exit 1
+          fi
+          # Commit and push only if there are changes
+          if git diff --exit-code; then
+            echo "No changes to commit"
+            # Delete the temporary branch since no changes were made
+            git checkout dev
+            git branch -D "$SNAPSHOT_BRANCH"
+          else
+            git add pom.xml
+            echo "${{ secrets.GPG_PASSPHRASE }}" | gpg --batch --pinentry-mode loopback --passphrase-fd 0 --yes --output /dev/null --clear-sign /dev/null
+            git commit -S -m "chore: update version to $NEXT_SNAPSHOT"
+            git push -u origin "$SNAPSHOT_BRANCH"
+            # Create and merge PR
+            gh pr create \
+              --base dev \
+              --head "$SNAPSHOT_BRANCH" \
+              --title "chore: update snapshot to $NEXT_SNAPSHOT" \
+              --body "Automated update of snapshot version after release ${{ steps.version.outputs.new_tag }}"
+            # Merge and delete branch
+            gh pr merge "$SNAPSHOT_BRANCH" --squash --auto --delete-branch || \
+              echo "Snapshot PR could not be auto-merged (may require manual approval)"
+            echo "✓ Dev branch update completed"
+          fi
+      # ----------------------------
+      # 18. Cleanup
+      # ----------------------------
+      - name: Cleanup release branch
+        if: always()
+        run: |
+          # Cleanup release branch
+          if [ -n "${{ env.RELEASE_BRANCH }}" ]; then
+            git push origin --delete "${{ env.RELEASE_BRANCH }}" 2>/dev/null || \
+              echo "Remote release branch already deleted or never pushed"
+            git branch -D "${{ env.RELEASE_BRANCH }}" 2>/dev/null || \
+              echo "Local release branch already deleted"
+            echo "✓ Release branch cleanup completed"
+          fi
+          # Cleanup any leftover snapshot branches
+          for branch in $(git branch | grep -E "snapshot/|release/"); do
+            echo "Deleting leftover branch: $branch"
+            git branch -D "$branch" 2>/dev/null || true
+          done
