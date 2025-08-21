@@ -1,0 +1,67 @@
+# Maven target directory
+/target/
+
+# IntelliJ IDEA
+.idea/
+*.iml
+*.iws
+out/
+
+# Eclipse
+.project
+.classpath
+.settings/
+bin/
+
+# VS Code
+.vscode/
+
+# OS files
+.DS_Store
+Thumbs.db
+
+# Logs
+*.log
+/logs/
+/log/
+
+# Test output reports
+/test-output/
+/surefire-reports/
+/testng-customsuite.xml
+
+# Reports and screenshots (customize as needed)
+reports/
+screenshots/
+*.png
+
+# Allure results
+/allure-results/
+/allure-report/
+
+# Logs or cache from log4j2 if any temp files are written
+*.lck
+
+# Temporary files
+*.tmp
+*.bak
+*.swp
+*~
+
+# Dependency directories (if ever used outside Maven)
+/node_modules/
+/lib/
+
+# Java language server and other IDE tooling
+/.classpath
+/.factorypath
+/.settings
+/.apt_generated
+/.recommenders
+
+# Build tools cache
+.mvn/
+.mvnd/
+
+# Others
+

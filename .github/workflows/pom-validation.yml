@@ -1,0 +1,68 @@
+name: 🧪 Validate POM & Maven Dependencies
+
+on:
+  pull_request:
+    branches:
+      - main
+      - dev
+      - 'feature/*'
+  push:
+    branches:
+      - main
+      - dev
+
+jobs:
+  validate-pom:
+    name: 🧪 Validate POM & Dependencies
+    runs-on: ubuntu-latest
+
+    # Optional: Set a specific shell for consistent behavior
+    defaults:
+      run:
+        shell: bash
+
+    steps:
+      - name: 📥 Checkout code
+        uses: actions/checkout@v4
+
+      - name: 📦 Install required system dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y libxml2-utils graphviz
+
+      - name: 🔧 Set up Java
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '21'
+          cache: 'maven'
+
+      - name: 🔒 Set execute permission on script
+        run: chmod +x scripts/pom-validator.sh
+
+      - name: 🚀 Run custom POM validator script
+        id: custom_validator
+        run: ./scripts/pom-validator.sh --graph --html
+        # Capture the exit code of the script for later checks
+        continue-on-error: true
+
+      - name: 📦 Validate Maven dependencies
+        run: mvn dependency:resolve
+
+      - name: ✅ Run Maven validate phase
+        run: mvn validate
+
+      # Optional: Upload the HTML report as an artifact
+      - name: ⬆️ Upload Validation Report Artifact
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: pom-validation-report
+          path: ./Reports/pom-validation-report.html
+
+      # Optional: Fail the build if the custom script had a non-zero exit code
+      - name: 🚨 Check Custom Script Result
+        if: steps.custom_validator.outcome == 'failure'
+        run: |
+          echo "The custom POM validator script failed. See logs for details."
+          exit 1
