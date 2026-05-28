@@ -7,20 +7,96 @@
 
 	<modelVersion>4.0.0</modelVersion>
 
+	<!-- Project Metadata -->
 	<groupId>opencode-qa</groupId>
 	<artifactId>hybrid-framework</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.0</version>
+	<packaging>jar</packaging>
 
 	<name>Hybrid Framework</name>
 
 	<description>
-		A Java-based hybrid test automation framework using
-		Java, Playwright, TestNG, Allure TestNG, Log4j2.
+		A Java-based hybrid test automation framework
+		using Playwright and TestNG.
 	</description>
 
+	<!-- Global Properties -->
 	<properties>
+
+		<!-- Encoding -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
+
+		<!-- Java -->
 		<maven.compiler.release>21</maven.compiler.release>
+
+		<!-- Dependency Versions -->
+		<playwright.version>1.59.0</playwright.version>
+		<testng.version>7.12.0</testng.version>
+
+		<!-- Plugin Versions -->
+		<maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
+		<maven.surefire.plugin.version>3.5.5</maven.surefire.plugin.version>
+		<maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
+
 	</properties>
 
+	<!-- Dependencies -->
+	<dependencies>
+
+		<!-- Playwright -->
+		<dependency>
+			<groupId>com.microsoft.playwright</groupId>
+			<artifactId>playwright</artifactId>
+			<version>${playwright.version}</version>
+		</dependency>
+
+		<!-- TestNG -->
+		<dependency>
+			<groupId>org.testng</groupId>
+			<artifactId>testng</artifactId>
+			<version>${testng.version}</version>
+			<scope>test</scope>
+		</dependency>
+
+	</dependencies>
+
+	<!-- Build Configuration -->
+	<build>
+
+		<plugins>
+
+			<!-- Maven Compiler Plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-compiler-plugin</artifactId>
+				<version>${maven.compiler.plugin.version}</version>
+
+				<configuration>
+					<release>${maven.compiler.release}</release>
+				</configuration>
+			</plugin>
+
+			<!-- Maven Surefire Plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-surefire-plugin</artifactId>
+				<version>${maven.surefire.plugin.version}</version>
+
+				<configuration>
+					<suiteXmlFiles>
+						<suiteXmlFile>testng.xml</suiteXmlFile>
+					</suiteXmlFiles>
+					<useFile>false</useFile>
+					<reportFormat>plain</reportFormat>
+				</configuration>
+			</plugin>
+			<!-- Maven Clean Plugin -->
+			<plugin>
+				<groupId>org.apache.maven.plugins</groupId>
+				<artifactId>maven-clean-plugin</artifactId>
+				<version>${maven.clean.plugin.version}</version>
+			</plugin>
+
+		</plugins>
+	</build>
 </project>
