@@ -10,7 +10,7 @@
 	<!-- Project Metadata -->
 	<groupId>opencode-qa</groupId>
 	<artifactId>hybrid-framework</artifactId>
-	<version>0.1.0-SNAPSHOT</version>
+	<version>0.1.0</version>
 	<packaging>jar</packaging>
 
 	<name>Hybrid Framework</name>
