@@ -241,24 +241,36 @@ jobs:
 
       - name: Sync dev branch
         run: |
-          git checkout dev
-          git pull origin dev
-          git merge main --no-edit || {
+            git checkout dev
+            git pull origin dev
+            git merge main --no-edit || {
             echo "::error::Merge conflict when merging main into dev. Resolve manually and push."
             exit 1
-          }
-          if [ "${{ steps.type.outputs.release_type }}" = "major_minor" ]; then
-            CURRENT_DEV_VER=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+            }
+
+            # Always bump dev to the next minor SNAPSHOT after any release
+            # (patch releases also advance dev to next minor)
             IFS='.' read -r MAJ MIN PAT <<< "${{ steps.version.outputs.next_version }}"
             NEXT_SNAPSHOT="$MAJ.$((MIN+1)).0-SNAPSHOT"
+
+            CURRENT_DEV_VER=$(grep -oP '(?<=<version>).*(?=</version>)' pom.xml | head -1)
+            echo "Current dev version: $CURRENT_DEV_VER"
+            echo "Setting dev to: $NEXT_SNAPSHOT"
+
             mvn versions:set -DnewVersion="$NEXT_SNAPSHOT" -DgenerateBackupPoms=false || \
               perl -pi -e "s|$CURRENT_DEV_VER|$NEXT_SNAPSHOT|g" pom.xml
+
+            # Verify the change
+            if grep -q "<version>$NEXT_SNAPSHOT</version>" pom.xml; then
+              echo "✓ pom.xml updated to $NEXT_SNAPSHOT"
+            else
+              echo "::error::Failed to update pom.xml to snapshot version"
+              exit 1
+            fi
+
             git add pom.xml
             git commit -S -m "chore: bump dev to $NEXT_SNAPSHOT"
-          else
-            echo "Patch release – dev version unchanged (already on higher minor)."
-          fi
-          git push origin dev
+            git push origin dev
 
       - name: Cleanup branch
         if: always()
