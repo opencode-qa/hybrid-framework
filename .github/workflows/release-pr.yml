@@ -35,7 +35,6 @@ env:
 jobs:
   release:
     runs-on: ubuntu-latest
-    # Prevent execution if the upstream CI pipeline failed, while still allowing manual dispatches
     if: ${{ github.event_name == 'workflow_dispatch' || github.event.workflow_run.conclusion == 'success' }}
     permissions:
       contents: write
@@ -98,7 +97,6 @@ jobs:
             NEXT_VERSION="${{ github.event.inputs.custom_version }}"
             echo "Using custom version: $NEXT_VERSION"
           else
-            # Default to auto if triggered by workflow_run
             BUMP="${{ github.event.inputs.version_bump || 'auto' }}"
             if [ "$BUMP" != "auto" ]; then
               if [ "$LATEST_TAG" = "none" ]; then
@@ -207,10 +205,10 @@ jobs:
           PR_NUMBER=$(echo "$PR_URL" | grep -oP '(?<=/pull/)\d+')
           echo "PR_NUMBER=$PR_NUMBER" >> $GITHUB_OUTPUT
 
-      - name: Wait for PR merge
+      - name: Wait for PR merge (3 hours timeout)
         run: |
           PR_NUMBER="${{ steps.create_pr.outputs.PR_NUMBER }}"
-          TIMEOUT=3600
+          TIMEOUT=10800   # 3 hours
           INTERVAL=30
           ELAPSED=0
           while [ $ELAPSED -lt $TIMEOUT ]; do
@@ -225,7 +223,7 @@ jobs:
             sleep $INTERVAL
             ELAPSED=$((ELAPSED+INTERVAL))
           done
-          echo "::error::Timeout waiting for PR merge."
+          echo "::error::Timeout waiting for PR merge after 3 hours."
           exit 1
 
       - name: Create tag and release
