@@ -1,0 +1,42 @@
+name: 🐛 Bug Report
+description: File a bug report to help improve the framework.
+title: "[BUG] <Short description of the issue>"
+labels: ["bug", "triage"]
+assignees:
+  - Anuj-Patiyal
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Thanks for taking the time to report this! Please ensure you are running the latest version of the framework before submitting.
+  - type: input
+    id: version
+    attributes:
+      label: Framework Version
+      description: Which milestone/release are you currently on? (e.g., v0.1.0)
+    validations:
+      required: true
+  - type: textarea
+    id: description
+    attributes:
+      label: Describe the bug
+      description: A clear and concise description of what the bug is.
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to Reproduce
+      description: How can we reproduce this behavior?
+      value: |
+        1. Run command '...'
+        2. Execute test '...'
+        3. See error '...'
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Stack Trace / CI Logs
+      description: Paste any relevant terminal output or Log4j2 logs.
+      render: shell
