@@ -1,247 +1,380 @@
 # 🚀 Playwright Java Hybrid Framework
 
-## Project Skeleton & CI/CD Setup (v0.0.0)
+<p align="center">
 
-![Main CI Pipeline](https://github.com/opencode-qa/hybrid-framework/actions/workflows/main-ci.yml/badge.svg)
+<img src="https://img.shields.io/github/v/release/opencode-qa/hybrid-framework?style=for-the-badge" />
+<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/main-ci.yml?branch=main&style=for-the-badge&label=Main%20CI" />
+<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?branch=main&style=for-the-badge&label=Feature%20PR" />
+<img src="https://img.shields.io/badge/Java-21-blue?style=for-the-badge" />
+<img src="https://img.shields.io/badge/Playwright-1.59.0-brightgreen?style=for-the-badge" />
+<img src="https://img.shields.io/badge/TestNG-7.12.0-red?style=for-the-badge" />
+<img src="https://img.shields.io/github/license/opencode-qa/hybrid-framework?style=for-the-badge" />
 
-![Feature PR Check](https://github.com/opencode-qa/hybrid-framework/actions/workflows/feature-pr.yml/badge.svg)
+</p>
 
-> An enterprise-grade, highly scalable automation framework foundation using Java, Playwright, TestNG, and robust CI/CD governance.
+<p align="center">
+
+Enterprise-grade Playwright + Java hybrid automation framework focused on scalability, CI/CD governance, repository automation, and modern testing architecture.
+
+</p>
 
 ---
 
 # 📚 Table of Contents
 
-1. [Project Overview](#-project-overview)
-2. [Technical Architecture](#-technical-architecture)
-3. [Branching Strategy](#-branching-strategy)
-4. [Versioning Scheme](#-versioning-scheme)
-5. [Initial Setup](#️-initial-setup)
-6. [Repository Automation](#-repository-automation)
-7. [Development Workflow](#-development-workflow)
-8. [Future Roadmap](#️-future-roadmap)
-9. [Contributing](#-contributing)
-10. [Author](#-author)
-11. [License](#-license)
+* [📌 Project Overview](#-project-overview)
+* [✨ Key Features](#-key-features)
+* [🆕 What's New in v0.1.0](#-whats-new-in-v010)
+* [⚙️ Technology Stack](#️-technology-stack)
+* [🧠 System Architecture](#-system-architecture)
+* [🧱 Framework Design Layers](#-framework-design-layers)
+* [🔁 Execution Workflow](#-execution-workflow)
+* [⚙️ CI/CD Architecture](#️-cicd-architecture)
+* [🧪 First Test Case — TC_001](#-first-test-case--tc_001)
+* [📁 Project Structure](#-project-structure)
+* [⚙️ Setup & Installation](#️-setup--installation)
+* [▶️ Test Execution](#️-test-execution)
+* [📊 Reporting Strategy](#-reporting-strategy)
+* [⏱️ Release PR Behaviour](#️-release-pr-behaviour)
+* [🌿 Branching Strategy](#-branching-strategy)
+* [🧮 Semantic Versioning](#-semantic-versioning)
+* [🛣️ Roadmap](#️-roadmap)
+* [🤝 Contributing](#-contributing)
+* [👨‍💻 Author](#-author)
+* [📜 License](#-license)
 
 ---
 
 # 📌 Project Overview
 
-This project establishes the strict foundational architecture for a modern UI/API automation framework.
+Nova Hybrid Framework is a scalable UI automation framework built using modern enterprise automation principles.
 
-At `v0.0.0`, the primary focus is not on testing dependencies, but on:
+The framework combines:
 
-- Repository governance
-- CI/CD pipelines
-- Automated script management
-
----
-
-## 🎯 Goals of v0.0.0
-
-- Establish the Maven `pom.xml` enforcing a minimum of:
-  - `Java 17+`
-
-- Implement strict GitHub Actions pipelines:
-  - `main-ci.yml`
-  - `feature-pr.yml`
-
-- Deploy a custom milestone-gated POM Validator:
-  - `pom-validator.sh v2.0`
-  - HTML reporting support
-
-- Automate repository operations using GitHub CLI (`gh`):
-  - PR creation
-  - Version bumping
-  - Issue linking
+* ✅ Java 21
+* ✅ Playwright 1.59.0
+* ✅ TestNG 7.12.0
+* ✅ Maven Build Lifecycle
+* ✅ GitHub Actions CI/CD
+* ✅ Automated Release Workflows
+* ✅ Repository Governance
+* ✅ Semantic Versioning
 
 ---
 
-# 🧱 Technical Architecture
+## 🎯 Vision
 
-## 📁 Folder Structure
+The framework prioritises:
 
-```txt
-hybrid-framework/
-├── .github/
-│   ├── features/           # Feature PR templates
-│   ├── issues/             # Automated issue templates
-│   ├── releases/           # Release PR templates
-│   └── workflows/          # CI/CD Pipelines
-│
-├── scripts/                # Bash automation engine
-│   ├── feature-pr.sh       # Automated feature PR creation
-│   ├── release-pr.sh       # Version bumping & release orchestration
-│   ├── issues.sh           # Batch issue generation
-│   ├── milestones.sh       # Roadmap synchronization
-│   └── pom-validator.sh    # Custom Maven dependency/plugin gatekeeper
-│
-├── src/
-│   ├── main/java/          # Core framework utilities (future)
-│   └── test/java/          # Playwright test execution (future)
-│
-├── pom.xml                 # Maven configuration
-└── README.md               # Documentation
-```
+* Governance-first automation
+* Scalable framework architecture
+* Maintainable CI/CD workflows
+* Automated repository management
+* High-performance UI validation
+* Long-term extensibility
 
 ---
 
-## 🧩 High-Level Component Diagram
+# ✨ Key Features
+
+| Capability                     | Status |
+| ------------------------------ | ------ |
+| Playwright Integration         | ✅      |
+| TestNG Execution Engine        | ✅      |
+| Maven Build Lifecycle          | ✅      |
+| GitHub Actions CI/CD           | ✅      |
+| Automated PR Workflows         | ✅      |
+| Semantic Versioning            | ✅      |
+| Browser Lifecycle Management   | ✅      |
+| Reporting Foundation           | ✅      |
+| First Runnable Test (`TC_001`) | ✅      |
+
+---
+
+# 🆕 What's New in `v0.1.0`
+
+## 🚀 Major Enhancements
+
+* Full Playwright integration
+* TestNG execution support
+* Browser lifecycle management
+* Base test lifecycle
+* Runnable automation engine
+* Initial reporting foundation
+* GitHub Actions test execution
+* First working Playwright test (`TC_001`)
+
+---
+
+## 📈 Upgrade Summary
+
+| Component  | v0.0.0          | v0.1.0              |
+| ---------- | --------------- | ------------------- |
+| Framework  | Skeleton        | Runnable Core       |
+| Playwright | ❌               | ✅                   |
+| Tests      | None            | `TC_001`            |
+| Execution  | Validation Only | Runtime Execution   |
+| CI/CD      | Governance      | Real Test Execution |
+
+---
+
+# ⚙️ Technology Stack
+
+| Technology     | Version |
+| -------------- | ------- |
+| Java           | 21      |
+| Maven          | 3.9+    |
+| Playwright     | 1.59.0  |
+| TestNG         | 7.12.0  |
+| GitHub Actions | Latest  |
+
+---
+
+# 🧠 System Architecture
 
 ```mermaid
 graph TD
 
-    A[Developer] -->|git push| B[feature branch]
+    A[Developer] -->|Push Code| B[Feature Branch]
 
-    B --> C[feature-pr.sh]
+    B --> C[Feature PR Workflow]
 
-    C -->|creates PR| D[GitHub Pull Request]
+    C --> D[GitHub Pull Request]
 
-    D --> E[feature-pr.yml]
+    D --> E[Feature Pipeline]
 
-    E -->|build and test| F{Pass?}
+    E --> F{Validation Passed?}
 
     F -->|Yes| G[Merge to dev]
 
-    F -->|No| H[Fix and Re-push]
+    F -->|No| H[Fix Issues]
 
-    G --> I[main-ci.yml on dev]
+    G --> I[Main CI Pipeline]
 
-    I -->|quality checks| J{Pass?}
+    I --> J[Playwright Execution]
 
-    J -->|Yes| K[Ready for Release]
+    J --> K[Test Reports]
 
-    K --> L[release-pr.yml]
-
-    L --> M[Release Pull Request]
-
-    M --> N[GitHub Release and Tag]
-
-    N --> O[Update dev Snapshot]
-
-    subgraph Automation Scripts
-        C
-        P[pom-validator.sh]
-        Q[issues.sh]
-        R[milestones.sh]
-    end
-
-    subgraph GitHub Actions
-        E
-        I
-        L
-    end
+    K --> L[Release Automation]
 ```
 
 ---
 
-# 🌿 Branching Strategy
-
-We follow a strict Git Flow governed by GitHub Branch Protection rules.
-
----
-
-## 🔀 Git Flow
+# 🧱 Framework Design Layers
 
 ```mermaid
-gitGraph
+graph TD
 
-    commit id: "Initial commit"
+    Tests[Test Layer]
 
-    branch dev
-    checkout dev
-    commit id: "v0.0.0 Project Skeleton"
+    Tests --> Pages[Page Layer – planned v0.3.0]
 
-    branch feature_v0_1_0_setup
-    checkout feature_v0_1_0_setup
-    commit id: "Add Playwright Core"
+    Pages --> Core[Core Framework]
 
-    checkout dev
-    merge feature_v0_1_0_setup tag: "merged feature"
+    Core --> Driver[Driver Factory]
 
-    checkout main
-    merge dev tag: "v0.0.0"
+    Core --> Config[Configuration Layer – planned v0.2.0]
+
+    Core --> Utils[Utility Layer]
+
+    Driver --> PW[Playwright Engine]
 ```
 
 ---
 
-## 🌱 Branch Rules
+# 🔁 Execution Workflow
 
-### `main`
+```mermaid
+sequenceDiagram
 
-- Protected production-ready code
-- Commits allowed only via Release PRs
+    participant Dev as Developer
+    participant GitHub
+    participant CI as GitHub Actions
+    participant TestNG
+    participant PW as Playwright
 
-### `dev`
+    Dev->>GitHub: Push Code
 
-- Protected integration branch
-- Commits allowed only via passing Feature PRs
+    GitHub->>CI: Trigger Workflow
 
-### `feature/*`
+    CI->>TestNG: Execute Test Suite
 
-- Active development branches
+    TestNG->>PW: Launch Browser
 
----
+    PW->>PW: Run Test Automation
 
-# 🧮 Versioning Scheme
+    PW-->>TestNG: Return Results
 
-We strictly follow Semantic Versioning (SemVer).
+    TestNG-->>CI: Generate Reports
 
-Versioning is automated during release pipelines using:
-
-```bash
-mvn versions:set
+    CI-->>GitHub: Publish Status
 ```
 
 ---
 
-## 🔄 SemVer Automation Flow
+# ⚙️ CI/CD Architecture
+
+```mermaid
+graph LR
+
+    A[Push / Pull Request]
+        --> B[GitHub Actions]
+
+    B --> C[Maven Build]
+
+    C --> D[Test Execution]
+
+    D --> E[Playwright Tests]
+
+    E --> F[Reports]
+
+    F --> G[Release Workflow]
+```
+
+---
+
+# 🧪 First Test Case — `TC_001`
+
+## 🔄 Flow
 
 ```mermaid
 flowchart LR
 
-    A[Commit Messages] --> B{"Contains BREAKING CHANGE?"}
+    A[Launch Browser]
+        --> B[Open DemoQA]
 
-    B -->|Yes| C[Major +1]
+    B --> C[Open Text Box Form]
 
-    B -->|No| D{"Contains feat: ?"}
+    C --> D[Fill User Details]
 
-    D -->|Yes| E[Minor +1 Reset Patch]
+    D --> E[Submit Form]
 
-    D -->|No| F[Patch +1]
+    E --> F[Validate Output]
 
-    C --> G[New Semantic Version]
-    E --> G
-    F --> G
-
-    G --> H[mvn versions:set]
+    F --> G[Close Browser]
 ```
 
 ---
 
-## 📌 Current Baseline
+## 💻 Actual Test Code (`v0.1.0`)
 
-```txt
-v0.0.0
+```java
+package tests;
+
+import org.testng.Assert;
+import org.testng.annotations.AfterTest;
+import org.testng.annotations.BeforeTest;
+import org.testng.annotations.Test;
+
+import com.microsoft.playwright.*;
+
+public class TC_001 {
+
+    Playwright playwright;
+    Browser browser;
+    Page page;
+
+    @BeforeTest
+    public void setUp() {
+
+        playwright = Playwright.create();
+
+        browser = playwright.chromium()
+                .launch(new BrowserType.LaunchOptions()
+                .setHeadless(true));
+
+        page = browser.newPage();
+    }
+
+    @Test
+    public void testTextBoxForm() {
+
+        page.navigate("https://demoqa.com");
+
+        page.click("div.card-body:has-text('Elements')");
+
+        page.click("span.text:has-text('Text Box')");
+
+        page.fill("#userName", "Anuj Kumar");
+
+        page.fill("#userEmail", "anuj@example.com");
+
+        page.fill("#currentAddress", "New Delhi, India");
+
+        page.fill("#permanentAddress", "Bangalore, India");
+
+        page.click("#submit");
+
+        Assert.assertTrue(
+                page.isVisible("#output"),
+                "Output div should be visible after submission"
+        );
+    }
+
+    @AfterTest
+    public void tearDown() {
+
+        if (browser != null) {
+            browser.close();
+        }
+
+        if (playwright != null) {
+            playwright.close();
+        }
+    }
+}
+```
+
+> **Note:** `BaseTest`, `BrowserFactory`, logging, and config management are planned for `v0.2.0`.
+
+---
+
+# 📁 Project Structure
+
+```plaintext
+hybrid-framework/
+├── .github/
+│   ├── workflows/
+│   │   ├── feature-pr.yml
+│   │   ├── main-ci.yml
+│   │   └── release-pr.yml
+│   │
+│   ├── features/
+│   ├── issues/
+│   └── releases/
+│
+├── scripts/
+│   ├── feature-pr.sh
+│   ├── release-pr.sh
+│   ├── pom-validator.sh
+│   ├── issues.sh
+│   └── milestones.sh
+│
+├── src/
+│   ├── main/java/
+│   └── test/java/
+│       └── tests/
+│           └── TC_001.java
+│
+├── testng.xml
+├── pom.xml
+└── README.md
 ```
 
 ---
 
-# ⚙️ Initial Setup
+# ⚙️ Setup & Installation
 
-## ✅ Prerequisites
+## 📋 Prerequisites
 
-- Java JDK `17 or 21`
-- Maven `3.8+`
-- Git `2.30+`
-- GitHub CLI (`gh`)
+* Java `17+`
+* Maven `3.8+`
+* Git `2.30+`
+* GitHub CLI (`gh`) *(optional for automation scripts)*
 
 ---
 
-## 💻 Installation
-
-### Clone Repository
+## 📥 Clone Repository
 
 ```bash
 git clone https://github.com/opencode-qa/hybrid-framework.git
@@ -251,133 +384,275 @@ cd hybrid-framework
 
 ---
 
-### Authenticate GitHub CLI
+## 📦 Install Dependencies
 
 ```bash
-gh auth login
+mvn clean install
 ```
 
 ---
 
-### Run Local POM Validation
+## 🌐 Install Playwright Browsers
 
 ```bash
-./scripts/pom-validator.sh --strict --html
+mvn exec:java \
+-Dexec.mainClass=com.microsoft.playwright.CLI \
+-Dexec.args="install"
 ```
 
 ---
 
-# 🤖 Repository Automation
+# ▶️ Test Execution
 
-This framework utilizes a custom Bash scripting engine to automate repository management tasks.
+## ▶️ Run All Tests
 
-| Script | Purpose | Execution |
-|---|---|---|
-| `pom-validator.sh` | Validates dependencies against milestone map and generates HTML reports | Local & CI |
-| `feature-pr.sh` | Creates or updates Feature PRs and links issues automatically | Local |
-| `release-pr.sh` | Bumps SemVer and generates release notes | GitHub Actions |
-| `milestones.sh` | Synchronizes milestones with GitHub | Local |
-| `issues.sh` | Batch creates GitHub issues from templates | Local |
+```bash
+mvn test
+```
 
 ---
 
-# 🔁 Development Workflow
+## 🎯 Run Specific Test
+
+```bash
+mvn test -Dtest=TC_001
+```
+
+---
+
+## 🧪 Execute TestNG Suite
+
+```bash
+mvn test -DsuiteXmlFile=testng.xml
+```
+
+---
+
+# 📊 Reporting Strategy
+
+## 🧰 Current Reporting Stack
+
+* TestNG HTML/XML Reports
+* Console Logs
+* GitHub Actions Artifacts
+
+---
+
+## 🚀 Planned Reporting (`v0.9.0`)
+
+* Allure Framework Integration
+* Screenshots & Video Attachments
+* Rich Dashboard Analytics
+* Historical Trend Reports
+
+---
+
+## 🔄 Reporting Workflow
 
 ```mermaid
-sequenceDiagram
+graph TD
 
-    participant Dev as Developer
-    participant Git as GitHub
-    participant Actions as GitHub Actions
-    participant Scripts as Automation Scripts
+    A[Test Execution]
+        --> B[TestNG Listener]
 
-    Dev->>Git: Create feature branch
+    B --> C[Capture Results]
 
-    Dev->>Git: Commit changes
+    C --> D[Generate Reports]
 
-    Dev->>Git: Push feature branch
-
-    Dev->>Scripts: Run feature-pr.sh
-
-    Scripts->>Git: Create or Update PR
-
-    Git->>Actions: Trigger feature-pr.yml
-
-    Actions->>Actions: mvn clean verify
-
-    Actions-->>Git: Status Check Result
-
-    Git-->>Dev: PR Ready for Review
-
-    Dev->>Git: Merge PR to dev
-
-    Git->>Actions: Trigger main-ci.yml
-
-    Actions-->>Git: Validation Passed
-
-    Note over Git: Release workflow can be manually triggered
+    D --> E[Upload CI Artifacts]
 ```
 
 ---
 
-# 🛣️ Future Roadmap
+# ⏱️ Release PR Behaviour
 
-| Version | Milestone Definition | Status |
-|---|---|---|
-| `v0.0.0` | Project Skeleton and CI Setup | ✅ Done |
-| `v0.1.0` | Playwright Core and First Test (`TC_001`) | 🚧 Next |
-| `v0.2.0` | Logging and Config Management | ⏳ Planned |
-| `v0.3.0` | Page Object Model Architecture | ⏳ Planned |
-| `v0.4.0` | Data-Driven Framework Setup | ⏳ Planned |
-| `v0.5.0` | Advanced Playwright Features | ⏳ Planned |
-| `v0.6.0` | Visual Regression Testing | ⏳ Planned |
-| `v0.7.0` | Cross-Browser and Parallel Execution | ⏳ Planned |
-| `v0.8.0` | TestNG Listeners and Retry Logic | ⏳ Planned |
-| `v0.9.0` | Allure Reporting and Dashboard Integration | ⏳ Planned |
-| `v1.0.0` | First Stable Master Release | ⏳ Planned |
+When a release is triggered:
+
+1. A release branch (`release/vX.Y.Z`) is created from `dev`
+2. `pom.xml` version is updated
+3. A PR from release branch → `main` is created
+4. The workflow waits for manual review & merge
+5. Git tag + GitHub Release are generated
+6. `dev` is updated to next snapshot version
+
+---
+
+## 🔄 Release Automation Flow
+
+```mermaid
+flowchart LR
+
+    A[Create Release Branch]
+        --> B[Update pom.xml]
+
+    B --> C[Open Release PR]
+
+    C --> D[Manual Review]
+
+    D --> E[Merge to Main]
+
+    E --> F[Create Git Tag]
+
+    F --> G[Publish GitHub Release]
+
+    G --> H[Update Dev Snapshot]
+```
+
+---
+
+# 🌿 Branching Strategy
+
+## 🌱 Branch Rules
+
+| Branch      | Purpose                   |
+| ----------- | ------------------------- |
+| `main`      | Production-ready releases |
+| `dev`       | Integration branch        |
+| `feature/*` | Active development        |
+| `release/*` | Release preparation       |
+| `hotfix/*`  | Emergency fixes           |
+
+---
+
+## 🔀 Git Flow
+
+```mermaid
+gitGraph
+
+    commit id: "Initial Commit"
+
+    branch dev
+    checkout dev
+    commit id: "Framework Setup"
+
+    branch feature_playwright
+    checkout feature_playwright
+    commit id: "Add Playwright + TC_001"
+
+    checkout dev
+    merge feature_playwright tag: "v0.1.0"
+
+    checkout main
+    merge dev
+```
+
+---
+
+# 🧮 Semantic Versioning
+
+The framework follows Semantic Versioning (`SemVer`).
+
+| Commit Type        | Version Impact |
+| ------------------ | -------------- |
+| `BREAKING CHANGE:` | Major          |
+| `feat:`            | Minor          |
+| `fix:`             | Patch          |
+
+---
+
+## 🔄 Versioning Workflow
+
+```mermaid
+flowchart LR
+
+    A[Commit]
+        --> B{Commit Type}
+
+    B -->|feat| C[Minor]
+
+    B -->|fix| D[Patch]
+
+    B -->|breaking| E[Major]
+
+    C --> F[Release PR]
+    D --> F
+    E --> F
+
+    F --> G[Git Tag]
+
+    G --> H[GitHub Release]
+```
+
+---
+
+# 🛣️ Roadmap
+
+| Version  | Milestone                      | Status |
+| -------- | ------------------------------ | ------ |
+| `v0.0.0` | Project Skeleton & CI/CD Setup | ✅      |
+| `v0.1.0` | Playwright Core & TC_001       | ✅      |
+| `v0.2.0` | Logging & Config Management    | 🚧     |
+| `v0.3.0` | Page Object Model Architecture | ⏳      |
+| `v0.4.0` | Data-Driven Framework          | ⏳      |
+| `v0.5.0` | Network Mocking & Auth State   | ⏳      |
+| `v0.6.0` | Visual Regression Testing      | ⏳      |
+| `v0.7.0` | Parallel & Cross-Browser       | ⏳      |
+| `v0.8.0` | Retry Logic & Listeners        | ⏳      |
+| `v0.9.0` | Allure Reporting               | ⏳      |
+| `v1.0.0` | Stable Enterprise Release      | ⏳      |
 
 ---
 
 # 🤝 Contributing
 
 ```bash
-# Fork repository
-
 # Create feature branch
-git checkout -b feature/your-feature
+git checkout -b feature/new-feature
 
 # Commit changes
-git commit -am "Add your feature"
+git commit -m "feat: add new feature"
 
-# Push branch
-git push origin feature/your-feature
+# Push changes
+git push origin feature/new-feature
 
-# Execute automation script
+# Create PR
 ./scripts/feature-pr.sh
 ```
+
+All pull requests must pass:
+
+* `feature-pr.yml`
+* `main-ci.yml`
 
 ---
 
 # 👨‍💻 Author
 
-## ANUJ KUMAR
+## Anuj Kumar
 
-🏅 QA Lead and AI-Assisted Testing Specialist
+🏅 QA Lead | Automation Architect | AI-Assisted Testing Specialist
 
-📧 Email: [anujpatiyal@live.in](mailto:anujpatiyal@live.in) | [anujpatiyal@gmail.com](mailto:anujpatiyal@gmail.com)
-
-🔗 LinkedIn Profile: [`anuj-kumar-qa`](https://www.linkedin.com/in/anuj-kumar-qa/)
+* 🔗 GitHub: https://github.com/opencode-qa
+* 🔗 LinkedIn: https://linkedin.com/in/anuj-kumar-qa
+* 📧 Email: [anujpatiyal@live.in](mailto:anujpatiyal@live.in)
 
 ---
 
 # 📜 License
 
-Distributed under the MIT License (see LICENSE).
+Distributed under the MIT License.
+
+```text
+MIT License © 2026 Anuj Kumar
+```
 
 ---
+
+# 💡 Philosophy
 
 > “First, solve the problem. Then, write the code.”
 >
 > — John Johnson
 
-This framework follows the principle of prioritizing governance, CI/CD, and automation architecture before implementation of actual test cases.
+Nova Hybrid Framework follows a governance-first automation philosophy where scalability, CI/CD architecture, repository automation, and maintainability are prioritised before implementation complexity.
+
+---
+
+# ⭐ Support the Project
+
+If you find this project useful:
+
+* ⭐ Star the repository
+* 🍴 Fork the project
+* 🛠️ Contribute improvements
+* 🐞 Report issues
