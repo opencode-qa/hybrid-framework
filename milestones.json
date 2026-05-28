@@ -1,0 +1,68 @@
+[
+  {
+    "title": "v0.0.0 - Framework Bootstrap & CI Setup",
+    "description": "Initial project setup with Maven structure, GitHub Actions CI pipeline, TestNG integration scaffold, folder architecture, and baseline configuration files.",
+    "state": "open",
+    "due_on": "2026-06-01T23:59:59Z"
+  },
+  {
+    "title": "v0.1.0 - First Playwright Execution Layer",
+    "description": "Integration of Playwright with Java 21 and TestNG. Implementation of first UI test (TC_001), browser lifecycle management, and basic assertion validation.",
+    "state": "open",
+    "due_on": "2026-06-08T23:59:59Z"
+  },
+  {
+    "title": "v0.2.0 - Core Utilities & Configuration Engine",
+    "description": "Browser factory implementation, configuration manager using properties files, environment handling, logging setup with Log4j2, and screenshot utility foundation.",
+    "state": "open",
+    "due_on": "2026-06-15T23:59:59Z"
+  },
+  {
+    "title": "v0.3.0 - Page Object Model Architecture",
+    "description": "Implementation of BasePage, reusable UI actions, locator strategy standardization, page object structure, and custom exception handling framework.",
+    "state": "open",
+    "due_on": "2026-06-22T23:59:59Z"
+  },
+  {
+    "title": "v0.4.0 - Data-Driven Testing Layer",
+    "description": "Integration of external test data sources using Excel (Apache POI) and JSON (Jackson). Implementation of TestNG DataProviders for parameterized execution.",
+    "state": "open",
+    "due_on": "2026-06-29T23:59:59Z"
+  },
+  {
+    "title": "v0.5.0 - Advanced Playwright Capabilities",
+    "description": "Network interception, API mocking, authentication state persistence, and browser session management enhancements for modern web application testing.",
+    "state": "open",
+    "due_on": "2026-07-06T23:59:59Z"
+  },
+  {
+    "title": "v0.6.0 - Visual Regression Testing Layer",
+    "description": "Implementation of screenshot-based validation, baseline image management, and visual comparison strategy for UI regression detection.",
+    "state": "open",
+    "due_on": "2026-07-13T23:59:59Z"
+  },
+  {
+    "title": "v0.7.0 - Parallel Execution & Cross Browser Engine",
+    "description": "Enable parallel test execution using TestNG, support for Chromium/Firefox/WebKit, and thread-safe execution design for scalability.",
+    "state": "open",
+    "due_on": "2026-07-20T23:59:59Z"
+  },
+  {
+    "title": "v0.8.0 - Stability & Failure Handling Layer",
+    "description": "Implementation of TestNG RetryAnalyzer, ITestListener, automatic failure screenshots, retry strategy (max 3 attempts), and enhanced logging system.",
+    "state": "open",
+    "due_on": "2026-07-27T23:59:59Z"
+  },
+  {
+    "title": "v0.9.0 - Reporting & Observability Layer",
+    "description": "Integration of Allure reporting with attachments, execution metadata, screenshots, logs, and CI report publishing configuration.",
+    "state": "open",
+    "due_on": "2026-08-03T23:59:59Z"
+  },
+  {
+    "title": "v1.0.0 - Stable Framework Release",
+    "description": "Final production-ready release including documentation, code refactoring, CI/CD stability, sample test suite, and tagged GitHub release.",
+    "state": "open",
+    "due_on": "2026-08-10T23:59:59Z"
+  }
+]
