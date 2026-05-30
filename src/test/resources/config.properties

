@@ -1,0 +1,6 @@
+browser=chromium
+headless=true
+slowMo=0
+base.url=https://demoqa.com
+screenshot.on.failure=true
+screenshot.dir=./screenshots

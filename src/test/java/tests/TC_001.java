@@ -1,6 +1,7 @@
 package tests;
 
 import exceptions.FrameworkException;
+import utils.ConfigReader;
 
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
@@ -15,35 +16,57 @@ import com.microsoft.playwright.Page;
 import com.microsoft.playwright.Playwright;
 
 public class TC_001 {
-	private static final Logger log = LogManager.getLogger(TC_001.class);
+
+    private static final Logger log = LogManager.getLogger(TC_001.class);
+
     Playwright playwright;
     Browser browser;
     Page page;
 
+    String baseUrl;
+    boolean headless;
+    int slowMo;
+
     @BeforeTest
     public void setUp() {
         log.info("========== TEST SETUP STARTED ==========");
+
         try {
+            // Load config once per test class
+            baseUrl = ConfigReader.getProperty("base.url");
+            headless = ConfigReader.getBooleanProperty("headless", true);
+            slowMo = ConfigReader.getIntProperty("slowMo", 0);
+
+            log.info("Config loaded -> baseUrl={}, headless={}, slowMo={}",
+                    baseUrl, headless, slowMo);
+
             playwright = Playwright.create();
-            log.info("Playwright initialized");
+
             browser = playwright.chromium().launch(
-                    new BrowserType.LaunchOptions().setHeadless(true)
+                    new BrowserType.LaunchOptions()
+                            .setHeadless(headless)
+                            .setSlowMo(slowMo)
             );
-            log.info("Browser launched successfully");
+
             page = browser.newPage();
-            log.info("New page created");
+
+            log.info("Browser session initialized successfully");
+
         } catch (Exception e) {
-            throw new FrameworkException("Failed to initialise browser/Playwright", e);
+            throw new FrameworkException("Failed to initialise test setup", e);
         }
+
         log.info("========== TEST SETUP COMPLETED ==========");
     }
 
     @Test
     public void testTextBoxForm() {
         log.info("========== TEST EXECUTION STARTED ==========");
+
         try {
-            page.navigate("https://demoqa.com");
-            page.click("div.card-body:has-text('Elements')");
+            page.navigate(baseUrl);
+
+            page.navigate(baseUrl + "/elements");
             page.click("span.text:has-text('Text Box')");
 
             page.fill("#userName", "John Doe");
@@ -54,20 +77,28 @@ public class TC_001 {
             page.click("#submit");
 
             boolean isOutputVisible = page.isVisible("#output");
-            Assert.assertTrue(isOutputVisible, "Output div should be visible after submission");
+            Assert.assertTrue(isOutputVisible,
+                    "Output div should be visible after submission");
 
-            log.info(page.textContent("#output"));
+            String outputText = page.textContent("#output");
+            log.info("Form Output:\n{}", outputText);
+
         } catch (Exception e) {
-            throw new FrameworkException("Test execution failed: " + e.getMessage(), e);
+            throw new FrameworkException("Test execution failed", e);
         }
+
         log.info("========== TEST EXECUTION COMPLETED ==========");
     }
 
     @AfterTest
     public void tearDown() {
         log.info("========== TEST TEARDOWN STARTED ==========");
+
         if (browser != null) browser.close();
         if (playwright != null) playwright.close();
+
+        log.info("Browser and Playwright closed successfully");
+
         log.info("========== TEST TEARDOWN COMPLETED ==========");
     }
 }
