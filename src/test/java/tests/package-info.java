@@ -1,4 +1,4 @@
-package tests;
 /**
- * This package is carrying out all the test cases
+ * Test classes containing Playwright-based automation test cases.
  */
+package tests;

@@ -9,14 +9,26 @@ import java.nio.file.Paths;
 import java.time.LocalDateTime;
 import java.time.format.DateTimeFormatter;
 
-public class ScreenshotUtil {
+/**
+ * Utility for capturing screenshots during test execution.
+ */
+public final class ScreenshotUtil {
 
-    private static final Logger log = LogManager.getLogger(ScreenshotUtil.class);
+    private static final Logger LOG = LogManager.getLogger(ScreenshotUtil.class);
 
-    public static void captureScreenshot(Page page, String testName) {
+    private ScreenshotUtil() {
+        throw new UnsupportedOperationException("Utility class");
+    }
 
+    /**
+     * Captures a screenshot and saves it to the configured directory.
+     *
+     * @param page     the Playwright page to capture
+     * @param testName name of the test (used in the filename)
+     */
+    public static void captureScreenshot(final Page page, final String testName) {
         if (page == null) {
-            log.warn("Screenshot skipped – page is null for test: {}", testName);
+            LOG.warn("Screenshot skipped – page is null for test: {}", testName);
             return;
         }
 
@@ -32,10 +44,10 @@ public class ScreenshotUtil {
             page.screenshot(new Page.ScreenshotOptions()
                     .setPath(Paths.get(path)));
 
-            log.info("Screenshot saved: {}", path);
+            LOG.info("Screenshot saved: {}", path);
 
         } catch (Exception e) {
-            log.error("Screenshot capture failed for test: {}", testName, e);
+            LOG.error("Screenshot capture failed for test: {}", testName, e);
         }
     }
 }

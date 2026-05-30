@@ -12,73 +12,86 @@ import org.testng.annotations.Test;
 import utils.ConfigReader;
 import utils.ScreenshotUtil;
 
+/**
+ * Test case TC_001: Validate the Text Box form on DemoQA.
+ */
 public class TC_001 {
-    private static final Logger log = LogManager.getLogger(TC_001.class);
+
+    private static final Logger LOG = LogManager.getLogger(TC_001.class);
     private Page page;
 
+    /**
+     * Sets up the browser and page before the test.
+     */
     @BeforeTest
     public void setUp() {
-        log.info("========== TEST SETUP STARTED ==========");
+        LOG.info("========== TEST SETUP STARTED ==========");
         try {
             page = BrowserFactory.getNewPage();
-            log.info("Browser launched | Headless: {} | SlowMo: {}ms | Browser: {}",
+            LOG.info("Browser launched | Headless: {} | SlowMo: {}ms | Browser: {}",
                     ConfigReader.getProperty("headless"),
                     ConfigReader.getProperty("slowMo"),
                     ConfigReader.getProperty("browser"));
         } catch (Exception e) {
-            log.error("Setup failed", e);
+            LOG.error("Setup failed", e);
             throw new FrameworkException("Failed to initialise browser", e);
         }
-        log.info("========== TEST SETUP COMPLETED ==========");
+        LOG.info("========== TEST SETUP COMPLETED ==========");
     }
 
+    /**
+     * Executes the Text Box form test.
+     */
     @Test
     public void testTextBoxForm() {
-        log.info("========== TEST EXECUTION STARTED ==========");
-        String baseUrl = ConfigReader.getProperty("base.url", "https://demoqa.com");
+        LOG.info("========== TEST EXECUTION STARTED ==========");
+        final String baseUrl = ConfigReader.getProperty("base.url", "https://demoqa.com");
         try {
-            log.info("Navigating to {}", baseUrl);
+            LOG.info("Navigating to {}", baseUrl);
             page.navigate(baseUrl);
-            log.debug("Current URL: {}", page.url());
+            LOG.debug("Current URL: {}", page.url());
 
-            log.info("Clicking 'Elements' card");
+            LOG.info("Clicking 'Elements' card");
             page.click("div.card-body:has-text('Elements')");
-            log.info("Clicking 'Text Box' menu");
+            LOG.info("Clicking 'Text Box' menu");
             page.click("span.text:has-text('Text Box')");
 
-            log.info("Filling form fields");
+            LOG.info("Filling form fields");
             page.fill("#userName", "John Doe");
             page.fill("#userEmail", "john.doe@test.com");
             page.fill("#currentAddress", "New Delhi, India");
             page.fill("#permanentAddress", "Bangalore, India");
 
-            log.info("Submitting form");
+            LOG.info("Submitting form");
             page.click("#submit");
 
-            log.info("Verifying output section visibility");
-            boolean isVisible = page.isVisible("#output");
-            log.info("Output visible: {}", isVisible);
+            LOG.info("Verifying output section visibility");
+            final boolean isVisible = page.isVisible("#output");
+            LOG.info("Output visible: {}", isVisible);
             Assert.assertTrue(isVisible, "Output div should be visible after submission");
 
-            String outputText = page.textContent("#output");
-            log.info("Output text:\n{}", outputText);
+            final String outputText = page.textContent("#output");
+            LOG.info("Output text:\n{}", outputText);
         } catch (AssertionError e) {
-            log.error("Assertion failed", e);
+            LOG.error("Assertion failed", e);
             ScreenshotUtil.captureScreenshot(page, "TC_001_failure");
             throw e;
         } catch (Exception e) {
-            log.error("Unexpected error during test execution", e);
+            LOG.error("Unexpected error during test execution", e);
             ScreenshotUtil.captureScreenshot(page, "TC_001_error");
             throw new FrameworkException("Test execution failed", e);
         }
-        log.info("========== TEST EXECUTION COMPLETED ==========");
+        LOG.info("========== TEST EXECUTION COMPLETED ==========");
     }
 
+    /**
+     * Closes the browser after the test.
+     */
     @AfterTest
     public void tearDown() {
-        log.info("========== TEST TEARDOWN STARTED ==========");
+        LOG.info("========== TEST TEARDOWN STARTED ==========");
         BrowserFactory.closeBrowser();
-        log.info("Browser closed");
-        log.info("========== TEST TEARDOWN COMPLETED ==========");
+        LOG.info("Browser closed");
+        LOG.info("========== TEST TEARDOWN COMPLETED ==========");
     }
 }

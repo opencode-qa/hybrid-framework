@@ -8,20 +8,22 @@ import org.testng.ITestListener;
 import org.testng.ITestResult;
 import utils.ScreenshotUtil;
 
+/**
+ * TestNG listener that captures screenshots when a test fails.
+ */
 public class ScreenshotListener implements ITestListener {
 
-    private static final Logger log = LogManager.getLogger(ScreenshotListener.class);
+    private static final Logger LOG = LogManager.getLogger(ScreenshotListener.class);
 
     @Override
-    public void onTestFailure(ITestResult result) {
+    public void onTestFailure(final ITestResult result) {
+        final String testName = result.getName();
+        LOG.info("Test failed → capturing screenshot: {}", testName);
 
-        String testName = result.getName();
-        log.info("Test failed → capturing screenshot: {}", testName);
-
-        Page page = BrowserFactory.getCurrentPage();
+        final Page page = BrowserFactory.getCurrentPage();
 
         if (page == null) {
-            log.warn("No page available for screenshot: {}", testName);
+            LOG.warn("No page available for screenshot: {}", testName);
             return;
         }
 
