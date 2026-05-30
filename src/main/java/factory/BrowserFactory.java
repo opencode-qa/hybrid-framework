@@ -1,9 +1,14 @@
 package factory;
 
-import com.microsoft.playwright.*;
 import exceptions.FrameworkException;
 import org.apache.logging.log4j.LogManager;
 import org.apache.logging.log4j.Logger;
+
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Playwright;
+import com.microsoft.playwright.Page;
+
 import utils.ConfigReader;
 
 public class BrowserFactory {
@@ -13,11 +18,13 @@ public class BrowserFactory {
     private static Playwright playwright;
     private static Browser browser;
 
+    private static final ThreadLocal<Page> currentPage = new ThreadLocal<>();
+
     public static synchronized Browser getBrowser() {
 
         if (browser == null) {
             try {
-                log.info("Initializing Playwright instance...");
+                log.info("Initializing Playwright...");
 
                 playwright = Playwright.create();
 
@@ -25,7 +32,7 @@ public class BrowserFactory {
                 boolean headless = ConfigReader.getBooleanProperty("headless", true);
                 int slowMo = ConfigReader.getIntProperty("slowMo", 0);
 
-                log.info("Browser Config -> type={}, headless={}, slowMo={}",
+                log.info("Config -> browser={}, headless={}, slowMo={}",
                         browserType, headless, slowMo);
 
                 BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
@@ -35,25 +42,21 @@ public class BrowserFactory {
                 switch (browserType) {
                     case "firefox":
                         browser = playwright.firefox().launch(options);
-                        log.info("Firefox browser launched");
                         break;
-
                     case "webkit":
                         browser = playwright.webkit().launch(options);
-                        log.info("WebKit browser launched");
                         break;
-
                     case "chromium":
                         browser = playwright.chromium().launch(options);
-                        log.info("Chromium browser launched");
                         break;
-
                     default:
-                        throw new FrameworkException("Invalid browser type in config: " + browserType);
+                        throw new FrameworkException("Invalid browser type: " + browserType);
                 }
 
+                log.info("{} browser launched successfully", browserType);
+
             } catch (Exception e) {
-                throw new FrameworkException("Failed to initialize Playwright Browser", e);
+                throw new FrameworkException("Browser initialization failed", e);
             }
         }
 
@@ -63,11 +66,16 @@ public class BrowserFactory {
     public static synchronized Page getNewPage() {
         try {
             Page page = getBrowser().newPage();
+            currentPage.set(page);
             log.info("New page created");
             return page;
         } catch (Exception e) {
             throw new FrameworkException("Failed to create new page", e);
         }
+    }
+
+    public static Page getCurrentPage() {
+        return currentPage.get();
     }
 
     public static synchronized void closeBrowser() {
@@ -77,14 +85,16 @@ public class BrowserFactory {
             if (browser != null) {
                 browser.close();
                 browser = null;
-                log.info("Browser closed");
             }
 
             if (playwright != null) {
                 playwright.close();
                 playwright = null;
-                log.info("Playwright closed");
             }
+
+            currentPage.remove();
+
+            log.info("Browser session closed successfully");
 
         } catch (Exception e) {
             throw new FrameworkException("Failed during browser teardown", e);
