@@ -1,20 +1,15 @@
 # 🚀 Playwright Java Hybrid Framework – v0.2.0
 
 <p align="center">
-
-<img src="https://img.shields.io/github/v/release/opencode-qa/hybrid-framework?style=for-the-badge" />
-<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/main-ci.yml?branch=main&style=for-the-badge&label=Main%20CI" />
-<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?branch=main&style=for-the-badge&label=Feature%20PR" />
-<img src="https://img.shields.io/badge/Java-21-blue?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Playwright-1.59.0-brightgreen?style=for-the-badge" />
-<img src="https://img.shields.io/badge/TestNG-7.12.0-red?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Log4j2-2.26.0-orange?style=for-the-badge" />
-<img src="https://img.shields.io/github/license/opencode-qa/hybrid-framework?style=for-the-badge" />
-
-</p>
-
-<p align="center">
-Enterprise‑grade hybrid automation framework – Java + Playwright + TestNG + Log4j2, with strict CI/CD governance and automated repository management.
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/main-ci.yml?branch=dev&style=for-the-badge&label=Main%20CI%20(dev)" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?branch=dev&style=for-the-badge&label=Feature%20PR%20(dev)" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/release-pr.yml?branch=dev&style=for-the-badge&label=Release%20PR%20(dev)" />
+  <img src="https://img.shields.io/badge/Java-21-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Playwright-1.59.0-brightgreen?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/TestNG-7.12.0-red?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Log4j2-2.26.0-orange?style=for-the-badge" />
+  <img src="https://img.shields.io/github/license/opencode-qa/hybrid-framework?style=for-the-badge" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?style=for-the-badge&label=Feature%20PR%20(last%20run)" />
 </p>
 
 ---

@@ -61,3 +61,16 @@ jobs:
             target/failsafe-reports/**
           if-no-files-found: ignore
           retention-days: 7
+
+      # NEW: Upload logs and screenshots for debugging
+      - name: 📸 Upload Logs & Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: artifacts-feature-${{ github.sha }}
+          path: |
+            logs/
+            screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
