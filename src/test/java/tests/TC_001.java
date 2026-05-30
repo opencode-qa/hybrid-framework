@@ -1,39 +1,46 @@
 package tests;
 
-import com.microsoft.playwright.*;
 import exceptions.FrameworkException;
+
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
 
-public class TC_001 {
+import com.microsoft.playwright.Browser;
+import com.microsoft.playwright.BrowserType;
+import com.microsoft.playwright.Page;
+import com.microsoft.playwright.Playwright;
 
+public class TC_001 {
+	private static final Logger log = LogManager.getLogger(TC_001.class);
     Playwright playwright;
     Browser browser;
     Page page;
 
     @BeforeTest
     public void setUp() {
-        System.out.println("========== TEST SETUP STARTED ==========");
+        log.info("========== TEST SETUP STARTED ==========");
         try {
             playwright = Playwright.create();
-            System.out.println("Playwright initialized");
+            log.info("Playwright initialized");
             browser = playwright.chromium().launch(
                     new BrowserType.LaunchOptions().setHeadless(true)
             );
-            System.out.println("Browser launched successfully");
+            log.info("Browser launched successfully");
             page = browser.newPage();
-            System.out.println("New page created");
+            log.info("New page created");
         } catch (Exception e) {
             throw new FrameworkException("Failed to initialise browser/Playwright", e);
         }
-        System.out.println("========== TEST SETUP COMPLETED ==========");
+        log.info("========== TEST SETUP COMPLETED ==========");
     }
 
     @Test
     public void testTextBoxForm() {
-        System.out.println("========== TEST EXECUTION STARTED ==========");
+        log.info("========== TEST EXECUTION STARTED ==========");
         try {
             page.navigate("https://demoqa.com");
             page.click("div.card-body:has-text('Elements')");
@@ -49,18 +56,18 @@ public class TC_001 {
             boolean isOutputVisible = page.isVisible("#output");
             Assert.assertTrue(isOutputVisible, "Output div should be visible after submission");
 
-            System.out.println(page.textContent("#output"));
+            log.info(page.textContent("#output"));
         } catch (Exception e) {
             throw new FrameworkException("Test execution failed: " + e.getMessage(), e);
         }
-        System.out.println("========== TEST EXECUTION COMPLETED ==========");
+        log.info("========== TEST EXECUTION COMPLETED ==========");
     }
 
     @AfterTest
     public void tearDown() {
-        System.out.println("========== TEST TEARDOWN STARTED ==========");
+        log.info("========== TEST TEARDOWN STARTED ==========");
         if (browser != null) browser.close();
         if (playwright != null) playwright.close();
-        System.out.println("========== TEST TEARDOWN COMPLETED ==========");
+        log.info("========== TEST TEARDOWN COMPLETED ==========");
     }
 }
