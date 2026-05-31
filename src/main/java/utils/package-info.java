@@ -1,4 +1,5 @@
 /**
- * Utility classes for configuration, screenshot capture, and logging support.
+ * Utility classes for: 
+ * configuration, screenshot capture, and logging support.
  */
 package utils;

@@ -13,7 +13,11 @@ import utils.ScreenshotUtil;
  */
 public class ScreenshotListener implements ITestListener {
 
-    private static final Logger LOG = LogManager.getLogger(ScreenshotListener.class);
+    /**
+     * Logger for this class.
+     */
+    private static final Logger LOG =
+            LogManager.getLogger(ScreenshotListener.class);
 
     @Override
     public void onTestFailure(final ITestResult result) {

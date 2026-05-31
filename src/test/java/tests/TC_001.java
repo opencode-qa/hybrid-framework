@@ -17,7 +17,12 @@ import utils.ScreenshotUtil;
  */
 public class TC_001 {
 
+    /** * Logger for the test. 
+     */
     private static final Logger LOG = LogManager.getLogger(TC_001.class);
+
+    /** * The Playwright page instance. 
+     */
     private Page page;
 
     /**
@@ -28,13 +33,15 @@ public class TC_001 {
         LOG.info("========== TEST SETUP STARTED ==========");
         try {
             page = BrowserFactory.getNewPage();
-            LOG.info("Browser launched | Headless: {} | SlowMo: {}ms | Browser: {}",
+            LOG.info("Browser launched | Headless: {} | "
+                    + "SlowMo: {}ms | Browser: {}",
                     ConfigReader.getProperty("headless"),
                     ConfigReader.getProperty("slowMo"),
                     ConfigReader.getProperty("browser"));
         } catch (Exception e) {
             LOG.error("Setup failed", e);
-            throw new FrameworkException("Failed to initialise browser", e);
+            throw new FrameworkException(
+                    "Failed to initialise browser", e);
         }
         LOG.info("========== TEST SETUP COMPLETED ==========");
     }
@@ -45,7 +52,8 @@ public class TC_001 {
     @Test
     public void testTextBoxForm() {
         LOG.info("========== TEST EXECUTION STARTED ==========");
-        final String baseUrl = ConfigReader.getProperty("base.url", "https://demoqa.com");
+        final String baseUrl = ConfigReader.getProperty(
+                "base.url", "https://demoqa.com");
         try {
             LOG.info("Navigating to {}", baseUrl);
             page.navigate(baseUrl);
@@ -68,7 +76,9 @@ public class TC_001 {
             LOG.info("Verifying output section visibility");
             final boolean isVisible = page.isVisible("#output");
             LOG.info("Output visible: {}", isVisible);
-            Assert.assertTrue(isVisible, "Output div should be visible after submission");
+            
+            Assert.assertTrue(isVisible, 
+                    "Output div should be visible after submission");
 
             final String outputText = page.textContent("#output");
             LOG.info("Output text:\n{}", outputText);

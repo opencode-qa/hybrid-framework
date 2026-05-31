@@ -14,10 +14,27 @@ import utils.ConfigReader;
  */
 public final class BrowserFactory {
 
-    private static final Logger LOG = LogManager.getLogger(BrowserFactory.class);
+    /**
+     * Logger for this class.
+     */
+    private static final Logger LOG =
+            LogManager.getLogger(BrowserFactory.class);
+
+    /**
+     * The Playwright instance.
+     */
     private static Playwright playwright;
+
+    /**
+     * The Playwright Browser instance.
+     */
     private static Browser browser;
-    private static final ThreadLocal<Page> CURRENT_PAGE = new ThreadLocal<>();
+
+    /**
+     * ThreadLocal storage for the Playwright Page.
+     */
+    private static final ThreadLocal<Page> CURRENT_PAGE =
+            new ThreadLocal<>();
 
     private BrowserFactory() {
         throw new UnsupportedOperationException("Utility class");
@@ -34,17 +51,19 @@ public final class BrowserFactory {
                 LOG.info("Initializing Playwright...");
                 playwright = Playwright.create();
 
-                String browserType = ConfigReader.getProperty("browser", "chromium")
-                        .toLowerCase();
-                boolean headless = ConfigReader.getBooleanProperty("headless", true);
+                String browserType = ConfigReader.getProperty(
+                        "browser", "chromium").toLowerCase();
+                boolean headless = ConfigReader.getBooleanProperty(
+                        "headless", true);
                 int slowMo = ConfigReader.getIntProperty("slowMo", 0);
 
                 LOG.info("Config -> browser={}, headless={}, slowMo={}",
                         browserType, headless, slowMo);
 
-                BrowserType.LaunchOptions options = new BrowserType.LaunchOptions()
-                        .setHeadless(headless)
-                        .setSlowMo(slowMo);
+                BrowserType.LaunchOptions options =
+                        new BrowserType.LaunchOptions()
+                                .setHeadless(headless)
+                                .setSlowMo(slowMo);
 
                 switch (browserType) {
                     case "firefox":
@@ -57,13 +76,15 @@ public final class BrowserFactory {
                         browser = playwright.chromium().launch(options);
                         break;
                     default:
-                        throw new FrameworkException("Invalid browser type: " + browserType);
+                        throw new FrameworkException(
+                                "Invalid browser type: " + browserType);
                 }
 
                 LOG.info("{} browser launched successfully", browserType);
 
             } catch (Exception e) {
-                throw new FrameworkException("Browser initialization failed", e);
+                throw new FrameworkException(
+                        "Browser initialization failed", e);
             }
         }
         return browser;
@@ -95,7 +116,8 @@ public final class BrowserFactory {
     }
 
     /**
-     * Closes the browser and Playwright instance, and removes thread-local state.
+     * Closes the browser and Playwright instance, 
+     * and removes thread-local state.
      */
     public static synchronized void closeBrowser() {
         LOG.info("Closing browser session...");
@@ -111,7 +133,8 @@ public final class BrowserFactory {
             CURRENT_PAGE.remove();
             LOG.info("Browser session closed successfully");
         } catch (Exception e) {
-            throw new FrameworkException("Failed during browser teardown", e);
+            throw new FrameworkException(
+                    "Failed during browser teardown", e);
         }
     }
 }

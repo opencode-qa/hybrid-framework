@@ -4,10 +4,14 @@ import java.io.InputStream;
 import java.util.Properties;
 
 /**
- * Reads configuration from config.properties and supports environment overrides.
+ * Reads configuration from config.properties and supports environment
+ * overrides.
  */
 public final class ConfigReader {
 
+    /**
+     * Properties object to store configuration data.
+     */
     private static final Properties PROPS = new Properties();
 
     static {
@@ -24,7 +28,8 @@ public final class ConfigReader {
             PROPS.putIfAbsent("screenshot.on.failure", "true");
             PROPS.putIfAbsent("screenshot.dir", "./screenshots");
         } catch (Exception e) {
-            System.err.println("Failed to load config.properties, using defaults only.");
+            System.err.println("Failed to load config.properties, "
+                    + "using defaults only.");
         }
     }
 
@@ -33,13 +38,15 @@ public final class ConfigReader {
     }
 
     /**
-     * Returns the value for a key, checking environment variables and system properties first.
+     * Returns the value for a key, checking environment variables and system
+     * properties first.
      *
      * @param key the property key
      * @return the resolved value, or null if not found
      */
     public static String getProperty(final String key) {
-        String envValue = System.getenv(key.toUpperCase().replace('.', '_'));
+        String envValue = System.getenv(
+                key.toUpperCase().replace('.', '_'));
         if (envValue != null) {
             return envValue;
         }
@@ -57,7 +64,8 @@ public final class ConfigReader {
      * @param defaultValue the default value
      * @return the resolved value or the default
      */
-    public static String getProperty(final String key, final String defaultValue) {
+    public static String getProperty(
+            final String key, final String defaultValue) {
         String value = getProperty(key);
         return value != null ? value : defaultValue;
     }
@@ -69,7 +77,8 @@ public final class ConfigReader {
      * @param defaultValue the default integer
      * @return the parsed integer or the default
      */
-    public static int getIntProperty(final String key, final int defaultValue) {
+    public static int getIntProperty(
+            final String key, final int defaultValue) {
         String val = getProperty(key);
         if (val == null) {
             return defaultValue;
@@ -88,7 +97,8 @@ public final class ConfigReader {
      * @param defaultValue the default boolean
      * @return the parsed boolean or the default
      */
-    public static boolean getBooleanProperty(final String key, final boolean defaultValue) {
+    public static boolean getBooleanProperty(
+            final String key, final boolean defaultValue) {
         String val = getProperty(key);
         if (val == null) {
             return defaultValue;

@@ -14,7 +14,11 @@ import java.time.format.DateTimeFormatter;
  */
 public final class ScreenshotUtil {
 
-    private static final Logger LOG = LogManager.getLogger(ScreenshotUtil.class);
+    /**
+     * Logger for this class.
+     */
+    private static final Logger LOG =
+            LogManager.getLogger(ScreenshotUtil.class);
 
     private ScreenshotUtil() {
         throw new UnsupportedOperationException("Utility class");
@@ -26,20 +30,25 @@ public final class ScreenshotUtil {
      * @param page     the Playwright page to capture
      * @param testName name of the test (used in the filename)
      */
-    public static void captureScreenshot(final Page page, final String testName) {
+    public static void captureScreenshot(
+            final Page page, final String testName) {
+        
         if (page == null) {
-            LOG.warn("Screenshot skipped – page is null for test: {}", testName);
+            LOG.warn("Screenshot skipped – page is null for test: {}",
+                    testName);
             return;
         }
 
         try {
-            String dir = ConfigReader.getProperty("screenshot.dir", "./screenshots");
+            String dir = ConfigReader.getProperty(
+                    "screenshot.dir", "./screenshots");
             Files.createDirectories(Paths.get(dir));
 
             String timestamp = LocalDateTime.now()
                     .format(DateTimeFormatter.ofPattern("yyyyMMdd-HHmmss"));
 
-            String path = String.format("%s/%s_%s.png", dir, testName, timestamp);
+            String path = String.format("%s/%s_%s.png",
+                    dir, testName, timestamp);
 
             page.screenshot(new Page.ScreenshotOptions()
                     .setPath(Paths.get(path)));
