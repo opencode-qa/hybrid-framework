@@ -32,7 +32,7 @@ public final class ScreenshotUtil {
      */
     public static void captureScreenshot(
             final Page page, final String testName) {
-        
+
         if (page == null) {
             LOG.warn("Screenshot skipped – page is null for test: {}",
                     testName);

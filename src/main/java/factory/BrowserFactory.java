@@ -116,7 +116,7 @@ public final class BrowserFactory {
     }
 
     /**
-     * Closes the browser and Playwright instance, 
+     * Closes the browser and Playwright instance,
      * and removes thread-local state.
      */
     public static synchronized void closeBrowser() {
