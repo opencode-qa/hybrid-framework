@@ -2,52 +2,58 @@
 set -euo pipefail
 
 # =============================================================================
-# GitHub Milestone Manager - Enhanced Output & Emoji Marking
-# Usage:
-#   ./scripts/milestones.sh -o <owner> -r <repo> -m <milestones.json> [-s spacing_days] [-t default_due_time] [--dry-run]
-# Example:
-#   ./scripts/milestones.sh -o opencode-qa -r hybrid-framework -m milestones.json
+# GitHub Milestone Manager - Ultimate Edition
+# Color Philosophy: Created 🟡, Open ⚪, Closed 🟢, Reopened 🔵,
+#                   Upcoming 🟠, Overdue 🟣, Failed 🔴, Skipped ⚫
 # =============================================================================
 
 # -------------------------
-# Defaults (can be overridden via CLI)
+# Defaults
 # -------------------------
 OWNER=""
 REPO=""
 MILESTONE_FILE=""
-START_DATE=$(date -d "next Monday" +%Y-%m-%d)  # default next Monday
+START_DATE=""
 SPACING_DAYS=7
 DEFAULT_DUE_TIME="23:59:59"
 DRY_RUN=false
+NO_CLEAR=false
 
 # -------------------------
 # CLI parsing
 # -------------------------
 usage() {
   cat <<EOF
-Usage: $0 -o OWNER -r REPO -m MILESTONE_FILE [-s SPACING_DAYS] [-t DEFAULT_DUE_TIME] [--dry-run]
-  -o OWNER             GitHub owner or organization (required)
-  -r REPO              GitHub repository (required)
-  -m MILESTONE_FILE    JSON file with milestone definitions (required)
-  -s SPACING_DAYS      Days between milestones (default: ${SPACING_DAYS})
-  -t DEFAULT_DUE_TIME  Default due time (default: ${DEFAULT_DUE_TIME})
-  --dry-run            Do not call GitHub API, only print actions
+Usage: $0 -o OWNER -r REPO -m MILESTONE_FILE [options]
+
+Required:
+  -o OWNER             GitHub owner or organization
+  -r REPO              GitHub repository
+  -m MILESTONE_FILE    JSON file with milestone definitions
+
+Options:
+  --start-date YYYY-MM-DD   First milestone due date (default: next Monday)
+  --spacing-days N          Days between milestones (default: 7)
+  --default-time HH:MM:SS   Default due time (default: 23:59:59)
+  --dry-run                 Do not call GitHub API, only print actions
+  --no-clear                Do not clear the screen before running
+  -h, --help                Show this help
 EOF
   exit 1
 }
 
-# parse args
-POSITIONAL=()
 while [[ $# -gt 0 ]]; do
   case "$1" in
     -o) OWNER="$2"; shift 2 ;;
     -r) REPO="$2"; shift 2 ;;
     -m) MILESTONE_FILE="$2"; shift 2 ;;
-    -s) SPACING_DAYS="$2"; shift 2 ;;
-    -t) DEFAULT_DUE_TIME="$2"; shift 2 ;;
+    --start-date) START_DATE="$2"; shift 2 ;;
+    --spacing-days) SPACING_DAYS="$2"; shift 2 ;;
+    --default-time) DEFAULT_DUE_TIME="$2"; shift 2 ;;
     --dry-run) DRY_RUN=true; shift ;;
+    --no-clear) NO_CLEAR=true; shift ;;
     -h|--help) usage ;;
-    *) POSITIONAL+=("$1"); shift ;;
+    *) echo "Unknown option: $1"; usage ;;
   esac
 done
 
@@ -56,37 +62,74 @@ if [ -z "$OWNER" ] || [ -z "$REPO" ] || [ -z "$MILESTONE_FILE" ]; then
 fi
 
 # -------------------------
-# Colors & Styles
+# Portable date handling
 # -------------------------
-# Attempt to initialize tput; if not available, fallback to empty strings
-if command -v tput >/dev/null 2>&1; then
+if command -v date >/dev/null && date -d "next Monday" >/dev/null 2>&1; then
+  HAVE_GNU_DATE=true
+else
+  HAVE_GNU_DATE=false
+fi
+
+if [ -z "$START_DATE" ]; then
+  if $HAVE_GNU_DATE; then
+    START_DATE=$(date -d "next Monday" +%Y-%m-%d)
+  else
+    START_DATE=$(python3 -c "from datetime import date, timedelta; print((date.today() + timedelta(days=7)).isoformat())" 2>/dev/null || date -v+7d +%Y-%m-%d 2>/dev/null || echo "2026-06-01")
+  fi
+fi
+
+compute_due_date() {
+  local base_date="$1"
+  local offset_days="$2"
+  local time_part="$3"
+  if $HAVE_GNU_DATE; then
+    due_iso=$(date -d "$base_date + $offset_days days" +"%Y-%m-%dT$time_part%z" 2>/dev/null || echo "")
+  else
+    due_iso=$(python3 -c "
+from datetime import datetime, timedelta
+d = datetime.strptime('$base_date', '%Y-%m-%d') + timedelta(days=$offset_days)
+print(d.strftime('%Y-%m-%dT$time_part%z'))
+" 2>/dev/null) || due_iso=""
+    if [ -z "$due_iso" ] && command -v date >/dev/null; then
+      due_iso=$(date -v+"${offset_days}"d -j -f "%Y-%m-%d" "$base_date" +"%Y-%m-%dT$time_part%z" 2>/dev/null || echo "")
+    fi
+  fi
+  if [ -z "$due_iso" ]; then
+    due_iso="${base_date}T$time_part+00:00"
+  fi
+  echo "$due_iso"
+}
+
+# -------------------------
+# Colors & Styles (New Philosophy)
+# -------------------------
+if command -v tput >/dev/null 2>&1 && [ -t 1 ]; then
   BOLD=$(tput bold)
   RESET=$(tput sgr0)
   UNDERLINE=$(tput smul)
-  COLOR_HEADER=$(tput setaf 33)      # Blue-ish
-  COLOR_PHASE1=$(tput setaf 39)      # Cyan
-  COLOR_PHASE2=$(tput setaf 208)     # Orange
-  COLOR_SUMMARY=$(tput setaf 200)    # Pink
-  COLOR_TIMESTAMP=$(tput setaf 99)   # Purple
-  COLOR_DIVIDER=$(tput setaf 27)     # Bright Blue
+  COLOR_HEADER=$(tput setaf 33)      # blue
+  COLOR_PHASE1=$(tput setaf 39)      # cyan
+  COLOR_PHASE2=$(tput setaf 208)     # orange
+  COLOR_SUMMARY=$(tput setaf 200)    # magenta
+  COLOR_TIMESTAMP=$(tput setaf 99)   # purple (timestamps only)
+  COLOR_DIVIDER=$(tput setaf 27)     # blue
 
-  COLOR_CREATED=$(tput setaf 46)     # Green
-  COLOR_SKIPPED=$(tput setaf 244)    # Gray
-  COLOR_FAILED=$(tput setaf 196)     # Red
-  COLOR_OPEN=$(tput setaf 255)       # White
-  COLOR_CLOSED=$(tput setaf 46)      # Green
-  COLOR_REOPENED=$(tput setaf 39)    # Blue
-  COLOR_UPCOMING=$(tput setaf 214)   # Orange
-  COLOR_ONTRACK=$(tput setaf 255)    # White
-  COLOR_OVERDUE=$(tput setaf 201)    # Purple
+  # Main status colors (bold applied in output)
+  COLOR_CREATED=$(tput setaf 226)    # bright yellow
+  COLOR_OPEN=$(tput setaf 255)       # white
+  COLOR_CLOSED=$(tput setaf 46)      # bright green
+  COLOR_REOPENED=$(tput setaf 39)    # cyan (blue-ish)
+  COLOR_UPCOMING=$(tput setaf 214)   # orange
+  COLOR_OVERDUE=$(tput setaf 99)     # purple
+  COLOR_FAILED=$(tput setaf 196)     # red
+  COLOR_SKIPPED=$(tput setaf 244)    # gray
 else
   BOLD=""; RESET=""; UNDERLINE=""
   COLOR_HEADER=""; COLOR_PHASE1=""; COLOR_PHASE2=""; COLOR_SUMMARY=""; COLOR_TIMESTAMP=""; COLOR_DIVIDER=""
-  COLOR_CREATED=""; COLOR_SKIPPED=""; COLOR_FAILED=""; COLOR_OPEN=""; COLOR_CLOSED=""; COLOR_REOPENED=""
-  COLOR_UPCOMING=""; COLOR_ONTRACK=""; COLOR_OVERDUE=""
+  COLOR_CREATED=""; COLOR_OPEN=""; COLOR_CLOSED=""; COLOR_REOPENED=""; COLOR_UPCOMING=""; COLOR_OVERDUE=""; COLOR_FAILED=""; COLOR_SKIPPED=""
 fi
 
-# Icons / Symbols
+# Icons / Symbols according to new philosophy
 ICON_CREATED="✔"
 ICON_SKIPPED="↻"
 ICON_FAILED="✗"
@@ -97,17 +140,17 @@ ICON_UPCOMING="▶"
 ICON_ONTRACK="➣"
 ICON_OVERDUE="!"
 
-SYM_CREATED="🟢"
+SYM_CREATED="🟡"
 SYM_SKIPPED="⚫"
 SYM_FAILED="🔴"
 SYM_OPEN="⚪"
 SYM_CLOSED="🟢"
 SYM_REOPENED="🔵"
 SYM_UPCOMING="🟠"
-SYM_ONTRACK="⚪"
+SYM_ONTRACK="⚪"      # On track shares white ball with Open
 SYM_OVERDUE="🟣"
 
-BLOCK_CREATED="🟩"
+BLOCK_CREATED="🟨"
 BLOCK_SKIPPED="⬛"
 BLOCK_FAILED="🟥"
 BLOCK_OPEN="⬜"
@@ -127,26 +170,14 @@ timestamp_now() {
   date '+%d-%b-%Y %H:%M:%S'
 }
 
-timestamp_short() {
-  # For due date display like "15 Aug 2025"
-  date -d "$1" +"%d %b %Y"
-}
-
-colorize_number() {
-  local number="$1" color="$2"
-  printf "%b%s%b" "${BOLD}${color}" "$number" "${RESET}"
-}
-
-# print header
 print_header() {
   echo
   echo -e "${COLOR_HEADER}${BOLD}╔══════════════════════════════════════════════════════════════════════════════════╗${RESET}"
-  echo -e "${COLOR_HEADER}${BOLD}║                      GitHub Milestone Manager - Enhanced Edition                 ║${RESET}"
+  echo -e "${COLOR_HEADER}${BOLD}║                      GitHub Milestone Manager - Ultimate Edition                 ║${RESET}"
   echo -e "${COLOR_HEADER}${BOLD}╚══════════════════════════════════════════════════════════════════════════════════╝${RESET}"
   echo
 }
 
-# print section / subsection
 print_section() {
   local title="$1" color="$2"
   echo
@@ -163,19 +194,29 @@ print_subsection() {
   echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
 }
 
-# print status with optional timestamp (if timestamp_str provided, show it; else show current)
-print_status() {
-  local icon="$1" color="$2" message="$3" timestamp_str="$4"
-  local ts_display
-  if [ -n "$timestamp_str" ]; then
-    ts_display="$timestamp_str"
-  else
-    ts_display="$(timestamp_now)"
-  fi
-  printf "%b${BOLD}%s %s%b  [%s]%b\n" "$color" "$icon" "$message" "$RESET" "$ts_display" "$RESET"
+print_aligned_status() {
+  local icon="$1" color="$2" title="$3" arrow_msg="$4" timestamp="$5"
+  local title_width="${TITLE_WIDTH:-60}"
+
+  # Get total terminal columns, default to 100 if unavailable
+  local term_cols=$(tput cols 2>/dev/null || echo 100)
+
+  # Format the main left-aligned string
+  local left_str=$(printf "%b${BOLD}%s %-*s %s%b" "$color" "$icon" "$title_width" "$title" "$arrow_msg" "$RESET")
+  local right_str=$(printf "${COLOR_TIMESTAMP}[%s]${RESET}" "$timestamp")
+
+  # Calculate visible length of left string (stripping ANSI codes for math)
+  # Basic cross-platform regex for ANSI escape sequences
+  local clean_left=$(echo -e "$left_str" | sed 's/\x1b\[[0-9;]*m//g')
+  local clean_right="[$timestamp]"
+  local padding=$(( term_cols - ${#clean_left} - ${#clean_right} ))
+
+  # Ensure padding isn't negative
+  (( padding < 1 )) && padding=1
+
+  printf "%s%*s%s\n" "$left_str" "$padding" "" "$right_str"
 }
 
-# Progress bar that maps status letters to colored blocks
 print_progress_bar() {
   local -n statuses=$1
   printf "["
@@ -188,7 +229,7 @@ print_progress_bar() {
       D) printf "%b%s%b" "${COLOR_CLOSED}" "${BLOCK_CLOSED}" "${RESET}" ;;
       R) printf "%b%s%b" "${COLOR_REOPENED}" "${BLOCK_REOPENED}" "${RESET}" ;;
       P) printf "%b%s%b" "${COLOR_UPCOMING}" "${BLOCK_UPCOMING}" "${RESET}" ;;
-      T) printf "%b%s%b" "${COLOR_ONTRACK}" "${BLOCK_ONTRACK}" "${RESET}" ;;
+      T) printf "%b%s%b" "${COLOR_OPEN}" "${BLOCK_ONTRACK}" "${RESET}" ;;   # On track uses white
       V) printf "%b%s%b" "${COLOR_OVERDUE}" "${BLOCK_OVERDUE}" "${RESET}" ;;
       *) printf " " ;;
     esac
@@ -196,134 +237,113 @@ print_progress_bar() {
   printf "] 100%% [%d/%d]\n" "${#statuses[@]}" "${#statuses[@]}"
 }
 
-# Summaries
 print_creation_summary() {
-  local created="$1" skipped="$2" failed="$3" color="$4"
+  local created="$1" skipped="$2" failed="$3"
   echo
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
+  echo -e "${COLOR_PHASE1}${BOLD}${SUBDIVIDER}${RESET}"
   echo -e "${COLOR_SUMMARY}${BOLD}📝 Creation Summary${RESET}"
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
-  printf "%b${BOLD}${ICON_CREATED} Created ${SYM_CREATED} ⇒ %s%b  |  %b${BOLD}${ICON_SKIPPED} Skipped ${SYM_SKIPPED} ⇒ %s%b  |  %b${BOLD}${ICON_FAILED} Failure ${SYM_FAILED} ⇒ %s%b\n" \
-    "${COLOR_CREATED}" "$(colorize_number "$created" "$COLOR_CREATED")" "${RESET}" \
-    "${COLOR_SKIPPED}" "$(colorize_number "$skipped" "$COLOR_SKIPPED")" "${RESET}" \
-    "${COLOR_FAILED}" "$(colorize_number "$failed" "$COLOR_FAILED")" "${RESET}"
+  echo -e "${COLOR_PHASE1}${BOLD}${SUBDIVIDER}${RESET}"
+  printf "${COLOR_CREATED}${BOLD}${ICON_CREATED} Created ${SYM_CREATED} ⇒ %s${RESET}  |  " "${COLOR_CREATED}${BOLD}${created}${RESET}"
+  printf "${COLOR_SKIPPED}${BOLD}${ICON_SKIPPED} Skipped ${SYM_SKIPPED} ⇒ %s${RESET}  |  " "${COLOR_SKIPPED}${BOLD}${skipped}${RESET}"
+  printf "${COLOR_FAILED}${BOLD}${ICON_FAILED} Failure ${SYM_FAILED} ⇒ %s${RESET}\n" "${COLOR_FAILED}${BOLD}${failed}${RESET}"
 }
 
 print_sync_summary() {
-  local created="$1" skipped="$2" failed="$3" open="$4" closed="$5" reopened="$6" color="$7"
+  local created="$1" skipped="$2" failed="$3" open="$4" closed="$5" reopened="$6"
   echo
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
+  echo -e "${COLOR_PHASE1}${BOLD}${SUBDIVIDER}${RESET}"
   echo -e "${COLOR_SUMMARY}${BOLD}⚙ Synchronization Results${RESET}"
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
-  printf "%b${BOLD}${ICON_CREATED} Created ${SYM_CREATED} ⇒ %s%b  |  %b${BOLD}${ICON_SKIPPED} Skipped ${SYM_SKIPPED} ⇒ %s%b  |  %b${BOLD}${ICON_FAILED} Failure ${SYM_FAILED} ⇒ %s%b\n" \
-    "${COLOR_CREATED}" "$(colorize_number "$created" "$COLOR_CREATED")" "${RESET}" \
-    "${COLOR_SKIPPED}" "$(colorize_number "$skipped" "$COLOR_SKIPPED")" "${RESET}" \
-    "${COLOR_FAILED}" "$(colorize_number "$failed" "$COLOR_FAILED")" "${RESET}"
-
-  printf "%b${BOLD}${ICON_OPEN} Open ${SYM_OPEN} ⇒ %s%b  |  %b${BOLD}${ICON_CLOSED} Closed ${SYM_CLOSED} ⇒ %s%b  |  %b${BOLD}${ICON_REOPENED} Reopened ${SYM_REOPENED} ⇒ %s%b\n" \
-    "${COLOR_OPEN}" "$(colorize_number "$open" "$COLOR_OPEN")" "${RESET}" \
-    "${COLOR_CLOSED}" "$(colorize_number "$closed" "$COLOR_CLOSED")" "${RESET}" \
-    "${COLOR_REOPENED}" "$(colorize_number "$reopened" "$COLOR_REOPENED")" "${RESET}"
+  echo -e "${COLOR_PHASE1}${BOLD}${SUBDIVIDER}${RESET}"
+  printf "${COLOR_CREATED}${BOLD}${ICON_CREATED} Created ${SYM_CREATED} ⇒ %s${RESET}  |  " "${COLOR_CREATED}${BOLD}${created}${RESET}"
+  printf "${COLOR_SKIPPED}${BOLD}${ICON_SKIPPED} Skipped ${SYM_SKIPPED} ⇒ %s${RESET}  |  " "${COLOR_SKIPPED}${BOLD}${skipped}${RESET}"
+  printf "${COLOR_FAILED}${BOLD}${ICON_FAILED} Failure ${SYM_FAILED} ⇒ %s${RESET}\n" "${COLOR_FAILED}${BOLD}${failed}${RESET}"
+  printf "${COLOR_OPEN}${BOLD}${ICON_OPEN} Open ${SYM_OPEN} ⇒ %s${RESET}  |  " "${COLOR_OPEN}${BOLD}${open}${RESET}"
+  printf "${COLOR_CLOSED}${BOLD}${ICON_CLOSED} Closed ${SYM_CLOSED} ⇒ %s${RESET}  |  " "${COLOR_CLOSED}${BOLD}${closed}${RESET}"
+  printf "${COLOR_REOPENED}${BOLD}${ICON_REOPENED} Reopened ${SYM_REOPENED} ⇒ %s${RESET}\n" "${COLOR_REOPENED}${BOLD}${reopened}${RESET}"
 }
 
 print_health_summary() {
-  local upcoming="$1" on_track="$2" overdue="$3" closed="$4" reopened="$5" color="$6"
+  local upcoming="$1" on_track="$2" overdue="$3" closed="$4" reopened="$5"
   echo
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
+  echo -e "${COLOR_PHASE2}${BOLD}${SUBDIVIDER}${RESET}"
   echo -e "${COLOR_SUMMARY}${BOLD}🔮 Health Overview${RESET}"
-  echo -e "${color}${BOLD}${SUBDIVIDER}${RESET}"
-  printf "%b${BOLD}${ICON_UPCOMING} Upcoming ${SYM_UPCOMING} ⇒ %s%b  |  %b${BOLD}${ICON_ONTRACK} On Track ${SYM_ONTRACK} ⇒ %s%b  |  %b${BOLD}${ICON_OVERDUE} Overdue ${SYM_OVERDUE} ⇒ %s%b\n" \
-    "${COLOR_UPCOMING}" "$(colorize_number "$upcoming" "$COLOR_UPCOMING")" "${RESET}" \
-    "${COLOR_ONTRACK}" "$(colorize_number "$on_track" "$COLOR_ONTRACK")" "${RESET}" \
-    "${COLOR_OVERDUE}" "$(colorize_number "$overdue" "$COLOR_OVERDUE")" "${RESET}"
-
-  printf "%b${BOLD}${ICON_CLOSED} Closed ${SYM_CLOSED} ⇒ %s%b  |  %b${BOLD}${ICON_REOPENED} Reopened ${SYM_REOPENED} ⇒ %s%b\n" \
-    "${COLOR_CLOSED}" "$(colorize_number "$closed" "$COLOR_CLOSED")" "${RESET}" \
-    "${COLOR_REOPENED}" "$(colorize_number "$reopened" "$COLOR_REOPENED")" "${RESET}"
+  echo -e "${COLOR_PHASE2}${BOLD}${SUBDIVIDER}${RESET}"
+  printf "${COLOR_UPCOMING}${BOLD}${ICON_UPCOMING} Upcoming ${SYM_UPCOMING} ⇒ %s${RESET}  |  " "${COLOR_UPCOMING}${BOLD}${upcoming}${RESET}"
+  printf "${COLOR_OPEN}${BOLD}${ICON_ONTRACK} On Track ${SYM_ONTRACK} ⇒ %s${RESET}  |  " "${COLOR_OPEN}${BOLD}${on_track}${RESET}"
+  printf "${COLOR_OVERDUE}${BOLD}${ICON_OVERDUE} Overdue ${SYM_OVERDUE} ⇒ %s${RESET}\n" "${COLOR_OVERDUE}${BOLD}${overdue}${RESET}"
+  printf "${COLOR_CLOSED}${BOLD}${ICON_CLOSED} Closed ${SYM_CLOSED} ⇒ %s${RESET}  |  " "${COLOR_CLOSED}${BOLD}${closed}${RESET}"
+  printf "${COLOR_REOPENED}${BOLD}${ICON_REOPENED} Reopened ${SYM_REOPENED} ⇒ %s${RESET}\n" "${COLOR_REOPENED}${BOLD}${reopened}${RESET}"
 }
 
 # -------------------------
 # GitHub API wrapper
 # -------------------------
 gh_api() {
+  local fatal_on_error="${1:-true}"
+  shift || true
   if [ "$DRY_RUN" = true ]; then
-    # Print what would be executed and return mock empty JSON where appropriate
-    echo "[DRY RUN] gh api $*"
+    echo "[DRY RUN] gh api $*" >&2
+    if [[ "$*" == *" -X POST"* ]] || [[ "$*" == *" -X PATCH"* ]]; then
+      echo "{}"
+    else
+      echo "[]"
+    fi
     return 0
   fi
-
+  local output
   output=$(gh api "$@" 2>&1) || {
-    status=$?
-    # Error handling for common errors
-    if [[ $output == *"HTTP 404"* ]]; then
-      echo -e "${COLOR_FAILED}${BOLD}Error: Repository or resource not found. Verify:${RESET}"
-      echo -e "  - Organization: ${COLOR_UPCOMING}$OWNER${RESET}"
-      echo -e "  - Repository: ${COLOR_UPCOMING}$REPO${RESET}"
-      echo -e "${COLOR_FAILED}Ensure the repository exists and you have access rights.${RESET}"
-      exit 1
-    elif [[ $output == *"HTTP 401"* ]] || [[ $output == *"HTTP 403"* ]]; then
-      echo -e "${COLOR_FAILED}${BOLD}Authentication/Authorization error. Please check GitHub CLI authentication.${RESET}"
-      echo -e "Run: ${COLOR_PHASE1}gh auth login${RESET}"
-      exit 1
+    local status=$?
+    if [[ "$output" == *"HTTP 404"* ]]; then
+      echo -e "${COLOR_FAILED}${BOLD}Error: Resource not found.${RESET}" >&2
+      if [ "$fatal_on_error" = true ]; then exit 1; else return 1; fi
+    elif [[ "$output" == *"HTTP 401"* ]] || [[ "$output" == *"HTTP 403"* ]]; then
+      echo -e "${COLOR_FAILED}${BOLD}Authentication error. Run 'gh auth login'.${RESET}" >&2
+      if [ "$fatal_on_error" = true ]; then exit 1; else return 1; fi
     else
-      echo -e "${COLOR_FAILED}${BOLD}GitHub API error (exit $status):${RESET}"
-      echo "$output"
-      exit $status
+      echo -e "${COLOR_FAILED}${BOLD}GitHub API error (exit $status):${RESET}" >&2
+      echo "$output" >&2
+      if [ "$fatal_on_error" = true ]; then exit $status; else return $status; fi
     fi
   }
-
   echo "$output"
 }
 
-# -------------------------
-# GitHub milestone helpers
-# -------------------------
 fetch_existing_milestones() {
-  # returns newline separated JSON objects
-  gh_api "repos/$OWNER/$REPO/milestones?state=all" --paginate
+  gh_api true "repos/$OWNER/$REPO/milestones?state=all" --paginate
 }
 
 create_github_milestone() {
   local title="$1" description="$2" due_on="$3" state="$4"
-
   if [ "$DRY_RUN" = true ]; then
-    echo "[DRY RUN] create milestone: title='$title' state='$state' due_on='$due_on'"
+    echo "[DRY RUN] create milestone: title='$title' state='$state' due_on='$due_on'" >&2
+    echo "{\"number\": 9999}"
     return 0
   fi
-
-  args=( "repos/$OWNER/$REPO/milestones" -X POST )
-  [ -n "$title" ] && args+=( -f "title=$title" )
-  [ -n "$description" ] && args+=( -f "description=$description" )
-  [ -n "$due_on" ] && args+=( -f "due_on=$due_on" )
-  [ -n "$state" ] && args+=( -f "state=$state" )
-
-  gh_api "${args[@]}"
+  gh_api true "repos/$OWNER/$REPO/milestones" -X POST \
+    -f "title=$title" \
+    -f "description=$description" \
+    -f "due_on=$due_on" \
+    -f "state=$state"
 }
 
 update_github_milestone() {
   local number="$1" title="$2" description="$3" due_on="$4" state="$5"
-
   if [ "$DRY_RUN" = true ]; then
-    echo "[DRY RUN] update milestone: #$number title='$title' state='$state' due_on='$due_on'"
+    echo "[DRY RUN] update milestone: #$number title='$title' state='$state' due_on='$due_on'" >&2
     return 0
   fi
-
-  args=( "repos/$OWNER/$REPO/milestones/$number" -X PATCH )
-  [ -n "$title" ] && args+=( -f "title=$title" )
-  [ -n "$description" ] && args+=( -f "description=$description" )
-  [ -n "$due_on" ] && args+=( -f "due_on=$due_on" )
-  [ -n "$state" ] && args+=( -f "state=$state" )
-
-  gh_api "${args[@]}"
+  gh_api false "repos/$OWNER/$REPO/milestones/$number" -X PATCH \
+    ${title:+-f "title=$title"} \
+    ${description:+-f "description=$description"} \
+    ${due_on:+-f "due_on=$due_on"} \
+    ${state:+-f "state=$state"} 2>/dev/null || return 1
 }
 
 get_milestone_issues() {
   local milestone_number="$1"
-  # state=all to count both open and closed
-  gh_api "repos/$OWNER/$REPO/issues?milestone=$milestone_number&state=all" --paginate 2>/dev/null || true
+  gh_api false "repos/$OWNER/$REPO/issues?milestone=$milestone_number&state=all" --paginate 2>/dev/null || echo "[]"
 }
 
-# Adds emoji to the beginning of the milestone description on GitHub, avoids duplicates
 update_milestone_emoji() {
   local milestone_number="$1" status="$2"
   local emoji=""
@@ -335,19 +355,12 @@ update_milestone_emoji() {
     "Reopened") emoji="🔵" ;;
     *) return 0 ;;
   esac
-
   local current_desc
-  current_desc=$(gh_api "repos/$OWNER/$REPO/milestones/$milestone_number" | jq -r '.description // ""' 2>/dev/null || echo "")
-
-  # Remove any existing status emojis
-  clean_desc=$(echo "$current_desc" | sed -E 's/^[🟢🟠⚪🟣🔵] //' | sed -E 's/^[🟢🟠⚪🟣🔵]//')
-
-  # Prepend new emoji
+  current_desc=$(gh_api false "repos/$OWNER/$REPO/milestones/$milestone_number" | jq -r '.description // ""' 2>/dev/null || echo "")
+  clean_desc=$(echo "$current_desc" | sed 's/^[🟡⚪🟢🔵🟠🟣🔴⚫] //' | sed 's/^[🟡⚪🟢🔵🟠🟣🔴⚫]//')
   local new_desc="$emoji $clean_desc"
-
-  # Only update if description changed
   if [[ "$current_desc" != "$new_desc" ]]; then
-    update_github_milestone "$milestone_number" "" "$new_desc" "" "" >/dev/null 2>&1
+    update_github_milestone "$milestone_number" "" "$new_desc" "" "" >/dev/null 2>&1 || true
   fi
 }
 
@@ -356,117 +369,109 @@ update_milestone_emoji() {
 # -------------------------
 process_milestones() {
   local created_count=0 skipped_count=0 failed_count=0
-  local open_count=0 closed_count=0 reopened_count=0
+  local open_count=0 closed_count=0 reopened_count=0 auto_closed_count=0
   local upcoming_count=0 on_track_count=0 overdue_count=0
   local total_issues=0 open_issues_total=0
 
   declare -a creation_statuses=() state_statuses=() health_statuses=()
   declare -a existing_list=()
 
-  # Load milestone file
   if [ ! -f "$MILESTONE_FILE" ]; then
     echo -e "${COLOR_FAILED}${BOLD}Error: Milestones file not found: $MILESTONE_FILE${RESET}"
     exit 1
   fi
-
   total_milestones=$(jq 'length' "$MILESTONE_FILE" 2>/dev/null || echo "0")
-  if [ "$total_milestones" = "0" ]; then
+  if [ "$total_milestones" -eq 0 ]; then
     echo -e "${COLOR_FAILED}${BOLD}Error: Milestones file is empty or invalid JSON: $MILESTONE_FILE${RESET}"
     exit 1
   fi
 
-  # Fetch existing milestones from GitHub (raw JSON array). We will transform it to one-object-per-line.
+  # Precompute max title length for alignment
+  max_title_len=0
+  while IFS= read -r title; do
+    len=${#title}
+    (( len > max_title_len )) && max_title_len=$len
+  done < <(jq -r '.[].title' "$MILESTONE_FILE")
+  TITLE_WIDTH=$(( max_title_len + 2 ))
+
   existing_raw=$(fetch_existing_milestones)
-  # Transform to one JSON object per line for safe iteration
   existing_milestones=$(echo "$existing_raw" | jq -c '.[]' 2>/dev/null || echo "")
 
-  # -------------------------
-  # PHASE 1: Synchronization - Create milestones if not exist
-  # -------------------------
+  # PHASE 1: Create missing milestones
   print_section "PHASE 1: MILESTONE SYNCHRONIZATION" "$COLOR_PHASE1"
   echo -e "${COLOR_PHASE1}${BOLD}🗘 Processing milestones...${RESET}"
-
   print_subsection "❯ CREATE MILESTONES" "$COLOR_PHASE1"
 
-  # read each milestone from file
+  index=0
   while IFS= read -r milestone; do
     title=$(jq -r '.title' <<< "$milestone")
     description=$(jq -r '.description // ""' <<< "$milestone")
     due_on=$(jq -r '.due_on // empty' <<< "$milestone")
     state=$(jq -r '.state // "open"' <<< "$milestone")
 
-    # check existence by title in existing_milestones
-    if [ -z "$existing_milestones" ]; then
-      existing=""
-    else
-      existing=$(jq -c --arg t "$title" 'select(.title == $t)' <<< "$existing_milestones" 2>/dev/null || true)
+    if [ -z "$due_on" ]; then
+      due_on=$(compute_due_date "$START_DATE" "$((index * SPACING_DAYS))" "$DEFAULT_DUE_TIME")
     fi
 
+    existing=$(jq -c --arg t "$title" 'select(.title == $t)' <<< "$existing_milestones" 2>/dev/null || true)
     if [ -z "$existing" ]; then
-      # create
       if output=$(create_github_milestone "$title" "$description" "$due_on" "$state" 2>&1); then
-        print_status "$ICON_CREATED" "$COLOR_CREATED" "$title ⇒ Created" "$(timestamp_now)"
+        arrow_msg="→ ${SYM_CREATED} ⇒ Created"
+        print_aligned_status "$ICON_CREATED" "$COLOR_CREATED" "$title" "$arrow_msg" "$(timestamp_now)"
         creation_statuses+=("C")
         created_count=$((created_count+1))
       else
-        print_status "$ICON_FAILED" "$COLOR_FAILED" "$title ⇒ Failed: ${output:0:80}" "$(timestamp_now)"
+        arrow_msg="→ ${SYM_FAILED} ⇒ Failed: ${output:0:80}"
+        print_aligned_status "$ICON_FAILED" "$COLOR_FAILED" "$title" "$arrow_msg" "$(timestamp_now)"
         creation_statuses+=("F")
         failed_count=$((failed_count+1))
       fi
     else
-      # skip
-      print_status "$ICON_SKIPPED" "$COLOR_SKIPPED" "$title → $SYM_SKIPPED ⇒ Existing" "$(timestamp_now)"
+      arrow_msg="→ ${SYM_SKIPPED} ⇒ Existing"
+      print_aligned_status "$ICON_SKIPPED" "$COLOR_SKIPPED" "$title" "$arrow_msg" "$(timestamp_now)"
       creation_statuses+=("S")
       skipped_count=$((skipped_count+1))
     fi
+    index=$((index+1))
   done < <(jq -c '.[]' "$MILESTONE_FILE")
 
-  # print creation progress & summary (bold & colored)
   print_progress_bar creation_statuses
-  print_creation_summary "$created_count" "$skipped_count" "$failed_count" "$COLOR_PHASE1"
+  print_creation_summary "$created_count" "$skipped_count" "$failed_count"
 
-  # -------------------------
-  # PHASE 1b: Update metadata & Reopening / state counts
-  # -------------------------
+  # PHASE 1b: Update metadata & reopening
   echo -e "\n${COLOR_PHASE1}${BOLD}🌀 Fetching milestones from GitHub...${RESET} $(timestamp_now)"
   print_subsection "❯ UPDATE METADATA & REOPENING" "$COLOR_PHASE1"
 
-  # Re-fetch to get updated list including newly created milestones
   existing_raw_updated=$(fetch_existing_milestones)
   existing_milestones_updated=$(echo "$existing_raw_updated" | jq -c '.[]' 2>/dev/null || echo "")
-  mapfile -t existing_list < <(echo "$existing_milestones_updated" | sed '/^\s*$/d' || true)
+  if [ -z "$existing_milestones_updated" ]; then
+    existing_list=()
+  else
+    mapfile -t existing_list < <(echo "$existing_milestones_updated" | sed '/^\s*$/d')
+  fi
 
-  open_count=0
-  closed_count=0
-  reopened_count=0
-  local auto_closed_count=0
   declare -A open_issues_cache
   declare -A closed_issues_cache
 
-  for index in "${!existing_list[@]}"; do
-    m="${existing_list[$index]}"
+  for m in "${existing_list[@]}"; do
     title=$(jq -r '.title' <<< "$m")
     state=$(jq -r '.state' <<< "$m")
     number=$(jq -r '.number' <<< "$m")
-    due_on=$(jq -r '.due_on // empty' <<< "$m")
     ts="$(timestamp_now)"
 
-    # Count issues
+    issues_raw=$(get_milestone_issues "$number")
     open_issues=0
     closed_issues=0
-    issues_raw=$(get_milestone_issues "$number")
-    if [ -n "$issues_raw" ]; then
-      mapfile -t issues_arr < <(echo "$issues_raw" | jq -c '.[]?' 2>/dev/null || true)
-      for issue in "${issues_arr[@]}"; do
+    if [ -n "$issues_raw" ] && [ "$issues_raw" != "[]" ]; then
+      while IFS= read -r issue; do
         issue_state=$(jq -r '.state' <<< "$issue" 2>/dev/null || echo "unknown")
         if [ "$issue_state" = "open" ]; then
           open_issues=$((open_issues+1))
         elif [ "$issue_state" = "closed" ]; then
           closed_issues=$((closed_issues+1))
         fi
-      done
+      done < <(echo "$issues_raw" | jq -c '.[]' 2>/dev/null || true)
     fi
-
     open_issues_cache[$number]=$open_issues
     closed_issues_cache[$number]=$closed_issues
     total=$((open_issues + closed_issues))
@@ -474,198 +479,195 @@ process_milestones() {
     original_state="$state"
     new_state="$state"
 
-    # Reopen incomplete milestones
     if [ "$state" = "closed" ] && { [ "$open_issues" -gt 0 ] || [ "$total" -eq 0 ]; }; then
-      if update_github_milestone "$number" "" "" "" "open" >/dev/null 2>&1 || [ "$DRY_RUN" = true ]; then
+      if update_github_milestone "$number" "" "" "" "open" >/dev/null 2>&1; then
         new_state="open"
-        print_status "$ICON_REOPENED" "$COLOR_REOPENED" "$title → $SYM_REOPENED ⇒ Reopened" "$ts"
+        arrow_msg="→ ${SYM_REOPENED} ⇒ Reopened"
+        print_aligned_status "$ICON_REOPENED" "$COLOR_REOPENED" "$title" "$arrow_msg" "$ts"
         state_statuses+=("R")
         reopened_count=$((reopened_count+1))
       fi
-    # Auto-close only when 100% completed
     elif [ "$state" = "open" ] && [ "$open_issues" -eq 0 ] && [ "$total" -gt 0 ]; then
-      if update_github_milestone "$number" "" "" "" "closed" >/dev/null 2>&1 || [ "$DRY_RUN" = true ]; then
+      if update_github_milestone "$number" "" "" "" "closed" >/dev/null 2>&1; then
         new_state="closed"
-        print_status "$ICON_CLOSED" "$COLOR_CLOSED" "$title → $SYM_CLOSED ⇒ Auto-Closed" "$ts"
+        arrow_msg="→ ${SYM_CLOSED} ⇒ Auto-Closed"
+        print_aligned_status "$ICON_CLOSED" "$COLOR_CLOSED" "$title" "$arrow_msg" "$ts"
         state_statuses+=("D")
         auto_closed_count=$((auto_closed_count+1))
       fi
     fi
 
-    # Update state in our local record
     if [ "$new_state" != "$original_state" ]; then
-      existing_list[$index]=$(jq -c --arg state "$new_state" '.state = $state' <<< "$m")
+      m=$(jq -c --arg state "$new_state" '.state = $state' <<< "$m")
       state="$new_state"
     fi
 
-    # Count final state
     if [ "$state" = "open" ]; then
-      print_status "$ICON_OPEN" "$COLOR_OPEN" "$title → $SYM_OPEN ⇒ Open" "$ts"
+      arrow_msg="→ ${SYM_OPEN} ⇒ Open"
+      print_aligned_status "$ICON_OPEN" "$COLOR_OPEN" "$title" "$arrow_msg" "$ts"
       state_statuses+=("O")
       open_count=$((open_count+1))
     else
-      print_status "$ICON_CLOSED" "$COLOR_CLOSED" "$title → $SYM_CLOSED ⇒ Closed" "$ts"
+      arrow_msg="→ ${SYM_CLOSED} ⇒ Closed"
+      print_aligned_status "$ICON_CLOSED" "$COLOR_CLOSED" "$title" "$arrow_msg" "$ts"
       state_statuses+=("D")
       closed_count=$((closed_count+1))
     fi
   done
 
   print_progress_bar state_statuses
-  print_sync_summary "$created_count" "$skipped_count" "$failed_count" "$open_count" "$closed_count" "$reopened_count" "$COLOR_PHASE1"
+  print_sync_summary "$created_count" "$skipped_count" "$failed_count" "$open_count" "$closed_count" "$reopened_count"
 
-  # -------------------------
-  # PHASE 2: Health Management - determine upcoming (nearest due date), on track, overdue.
-  # -------------------------
+  # PHASE 2: Health management
   print_section "PHASE 2: MILESTONE HEALTH MANAGEMENT" "$COLOR_PHASE2"
   echo -e "${COLOR_PHASE2}${BOLD}🌟 Analyzing milestone health...${RESET} $(timestamp_now)"
-
   print_subsection "❯ Milestone Status Review" "$COLOR_PHASE2"
 
-  # We'll compute diff_days for each existing milestone and pick the nearest non-negative (future or today)
-  declare -a diffs=()
-  declare -a ms_numbers=()
-  declare -a ms_jsons=()
-
-  # populate arrays
+  # Collect open milestones for upcoming detection
+  declare -a open_diffs=()
+  declare -a open_ms_numbers=()
   for m in "${existing_list[@]}"; do
-    number=$(jq -r '.number' <<< "$m")
-    title=$(jq -r '.title' <<< "$m")
-    due_on=$(jq -r '.due_on // empty' <<< "$m")
     state=$(jq -r '.state' <<< "$m")
-
+    [ "$state" = "closed" ] && continue
+    number=$(jq -r '.number' <<< "$m")
+    due_on=$(jq -r '.due_on // empty' <<< "$m")
     if [ -n "$due_on" ]; then
-      # convert to epoch seconds; some due_on may include timezone; handle gracefully
-      due_ts=$(date -d "$due_on" +%s 2>/dev/null || echo 0)
-      now_ts=$(date +%s)
-      if [ "$due_ts" -gt 0 ]; then
-        diff_days=$(( (due_ts - now_ts) / 86400 ))
+      if $HAVE_GNU_DATE; then
+        due_ts=$(date -d "$due_on" +%s 2>/dev/null || echo 0)
       else
-        diff_days=99999
+        due_ts=$(python3 -c "from datetime import datetime; print(int(datetime.fromisoformat('$due_on').timestamp()))" 2>/dev/null || echo 0)
       fi
+      now_ts=$(date +%s)
+      diff_days=$(( due_ts > 0 ? (due_ts - now_ts) / 86400 : 99999 ))
     else
       diff_days=99999
     fi
-
-    diffs+=( "$diff_days" )
-    ms_numbers+=( "$number" )
-    ms_jsons+=( "$m" )
+    open_diffs+=("$diff_days")
+    open_ms_numbers+=("$number")
   done
 
-  # determine index of nearest non-negative diff (closest upcoming)
   closest_index=-1
   closest_val=99999
-  for i in "${!diffs[@]}"; do
-    val=${diffs[$i]}
+  for i in "${!open_diffs[@]}"; do
+    val=${open_diffs[$i]}
     if [ "$val" -ge 0 ] && [ "$val" -lt "$closest_val" ]; then
       closest_val=$val
       closest_index=$i
     fi
   done
 
-  # Iterate again to compute health statuses
-  for i in "${!ms_jsons[@]}"; do
-    m="${ms_jsons[$i]}"
+  for i in "${!existing_list[@]}"; do
+    m="${existing_list[$i]}"
     number=$(jq -r '.number' <<< "$m")
     title=$(jq -r '.title' <<< "$m")
     state=$(jq -r '.state' <<< "$m")
     due_on=$(jq -r '.due_on // empty' <<< "$m")
-    diff_days=${diffs[$i]}
 
-    # Use cached issue counts
     open_issues=${open_issues_cache[$number]:-0}
     closed_issues=${closed_issues_cache[$number]:-0}
     total=$((open_issues + closed_issues))
     total_issues=$((total_issues + total))
     open_issues_total=$((open_issues_total + open_issues))
 
-    # Format due info
-    if [ -n "$due_on" ] && [ "$diff_days" -ne 99999 ]; then
-      due_date_fmt=$(date -d "$due_on" +"%d %b %Y" 2>/dev/null || echo "$due_on")
-      due_info="→ $due_date_fmt (due in $diff_days days)"
-    elif [ -n "$due_on" ]; then
-      due_date_fmt=$(date -d "$due_on" +"%d %b %Y" 2>/dev/null || echo "$due_on")
-      due_info="→ $due_date_fmt"
-    else
-      due_info="→ No due date"
-    fi
-
-    # Determine health status
-    health_status=""
-    icon=""
-    color=""
-    ts="$(timestamp_now)"
-
+    # Compute status, primary color, and leading icon
     if [ "$state" = "closed" ]; then
       health_status="Closed"
       icon="$SYM_CLOSED $ICON_CLOSED"
+      leading_icon="$ICON_CLOSED"
       color="$COLOR_CLOSED"
       health_statuses+=("D")
     else
-      # Status reporting for open milestones
-      if [ -n "$due_on" ] && [ "$diff_days" -ne 99999 ]; then
-        if [ "$diff_days" -lt 0 ]; then
-          health_status="Overdue"
-          icon="$SYM_OVERDUE $ICON_OVERDUE"
-          color="$COLOR_OVERDUE"
-          health_statuses+=("V")
-          overdue_count=$((overdue_count+1))
-        elif [ "$i" -eq "$closest_index" ]; then
-          # This is the single closest upcoming milestone
-          health_status="Upcoming"
-          icon="$SYM_UPCOMING $ICON_UPCOMING"
-          color="$COLOR_UPCOMING"
-          health_statuses+=("P")
-          upcoming_count=$((upcoming_count+1))
-        else
-          health_status="On track"
-          icon="$SYM_ONTRACK $ICON_ONTRACK"
-          color="$COLOR_ONTRACK"
-          health_statuses+=("T")
-          on_track_count=$((on_track_count+1))
+      # Check if this open milestone is the closest upcoming
+      is_closest=false
+      for j in "${!open_ms_numbers[@]}"; do
+        if [ "${open_ms_numbers[$j]}" -eq "$number" ] && [ "$j" -eq "$closest_index" ]; then
+          is_closest=true
+          break
         fi
+      done
+
+      if [ -n "$due_on" ] && [ "${diff_days:-99999}" -lt 0 ]; then
+        health_status="Overdue"
+        icon="$SYM_OVERDUE $ICON_OVERDUE"
+        leading_icon="$ICON_OVERDUE"
+        color="$COLOR_OVERDUE"
+        health_statuses+=("V")
+        overdue_count=$((overdue_count+1))
+      elif [ "$is_closest" = true ]; then
+        health_status="Upcoming"
+        icon="$SYM_UPCOMING $ICON_UPCOMING"
+        leading_icon="$ICON_UPCOMING"
+        color="$COLOR_UPCOMING"
+        health_statuses+=("P")
+        upcoming_count=$((upcoming_count+1))
       else
         health_status="On track"
         icon="$SYM_ONTRACK $ICON_ONTRACK"
-        color="$COLOR_ONTRACK"
+        leading_icon="$ICON_ONTRACK"
+        color="$COLOR_OPEN"        # On track uses white text
         health_statuses+=("T")
         on_track_count=$((on_track_count+1))
       fi
     fi
 
-    # Update emoji in description
+    # Build due date info with color based on health_status
+    if [ -n "$due_on" ]; then
+      due_date_fmt=$(echo "$due_on" | cut -d'T' -f1)
+      if $HAVE_GNU_DATE; then
+        diff_days=$(date -d "$due_on" +%s 2>/dev/null | awk '{print int(($1 - now)/86400)}' now=$(date +%s) || echo "?")
+      else
+        diff_days=$(python3 -c "from datetime import datetime; d=datetime.fromisoformat('$due_on'); now=datetime.now(); print((d-now).days)" 2>/dev/null || echo "?")
+      fi
+      # Due date color follows the status color, except Closed uses green
+      if [ "$health_status" = "Closed" ]; then
+        due_color="$COLOR_CLOSED"
+      else
+        due_color="$color"
+      fi
+      due_info="${due_color}${BOLD}→ $due_date_fmt (due in ${diff_days:-?} days)${RESET}"
+    else
+      due_info="${COLOR_TIMESTAMP}→ No due date${RESET}"
+    fi
+
     update_milestone_emoji "$number" "$health_status" 2>/dev/null || true
 
-    # Print in desired format:
-    status_msg="$title $due_info ⇒ $icon $health_status [$open_issues open / $closed_issues closed]"
-    print_status "$ICON_OPEN" "$color" "$status_msg" "$ts"
+    # Modern Framework Tree Output for Issues
+    arrow_msg="$due_info ⇒ ${color}${BOLD}${icon} ${health_status}${RESET}"
+
+    print_aligned_status "$leading_icon" "$color" "$title" "$arrow_msg" "$(timestamp_now)"
+    echo -e "  ${color}└──${RESET} ${COLOR_OPEN}Issues:${RESET} ${open_issues} Open, ${closed_issues} Closed\n"
   done
 
-  # Print health progress bar & summary
   [ ${#health_statuses[@]} -gt 0 ] && print_progress_bar health_statuses
-  print_health_summary "$upcoming_count" "$on_track_count" "$overdue_count" "$closed_count" "$reopened_count" "$COLOR_PHASE2"
+  print_health_summary "$upcoming_count" "$on_track_count" "$overdue_count" "$closed_count" "$reopened_count"
 
-  # FINAL SUMMARY
+# FINAL SUMMARY (Original layout with colored category & notes)
   print_section "FINAL SUMMARY" "$COLOR_SUMMARY"
   echo
-  printf "%b%-20s %-12s %-30s%b\n" "${COLOR_SUMMARY}${BOLD}" "Category" "Count" "Notes" "${RESET}"
-  printf "%b%-20s %-12s %-30s%b\n" "${COLOR_SUMMARY}" "──────────────────" "──────────" "──────────────────────────────" "${RESET}"
-  printf "%-20s %-12s %-30s\n" "Total Milestones" "$(colorize_number "$total_milestones" "$COLOR_SUMMARY")" "All milestones processed"
-  printf "%-20s %-12s %-30s\n" "Created" "$(colorize_number "$created_count" "$COLOR_CREATED")" "New milestones created"
-  printf "%-20s %-12s %-30s\n" "Skipped" "$(colorize_number "$skipped_count" "$COLOR_SKIPPED")" "Existing milestones skipped"
-  printf "%-20s %-12s %-30s\n" "Reopened" "$(colorize_number "$reopened_count" "$COLOR_REOPENED")" "Incomplete milestones reopened"
-  printf "%-20s %-12s %-30s\n" "Auto-Closed" "$(colorize_number "$auto_closed_count" "$COLOR_CLOSED")" "Completed milestones closed"
-  printf "%-20s %-12s %-30s\n" "Total Closed" "$(colorize_number "$closed_count" "$COLOR_CLOSED")" "All closed milestones"
-  printf "%-20s %-12s %-30s\n" "Issues Tracked" "$(colorize_number "$total_issues" "$COLOR_PHASE1")" "Total issues across milestones"
+  printf "${COLOR_SUMMARY}${BOLD}%-20s %-12s %-30s${RESET}\n" "Category" "Count" "Notes"
+  printf "${COLOR_SUMMARY}%-20s %-12s %-30s${RESET}\n" "──────────────────" "──────────" "──────────────────────────────"
+
+  # Format specifier: %b applies color, %s applies the padding, %b resets it
+  local ROW_FMT="%b%-20s%b %b%-12s%b %b%-30s%b\n"
+
+  printf "$ROW_FMT" "${COLOR_SUMMARY}"  "Total Milestones" "${RESET}" "${COLOR_SUMMARY}${BOLD}"  "$total_milestones"  "${RESET}" "${COLOR_SUMMARY}"  "All milestones processed"       "${RESET}"
+  printf "$ROW_FMT" "${COLOR_CREATED}"  "Created"          "${RESET}" "${COLOR_CREATED}${BOLD}"  "$created_count"     "${RESET}" "${COLOR_CREATED}"  "New milestones created"         "${RESET}"
+  printf "$ROW_FMT" "${COLOR_SKIPPED}"  "Skipped"          "${RESET}" "${COLOR_SKIPPED}${BOLD}"  "$skipped_count"     "${RESET}" "${COLOR_SKIPPED}"  "Existing milestones skipped"    "${RESET}"
+  printf "$ROW_FMT" "${COLOR_REOPENED}" "Reopened"         "${RESET}" "${COLOR_REOPENED}${BOLD}" "$reopened_count"    "${RESET}" "${COLOR_REOPENED}" "Incomplete milestones reopened" "${RESET}"
+  printf "$ROW_FMT" "${COLOR_CLOSED}"   "Auto-Closed"      "${RESET}" "${COLOR_CLOSED}${BOLD}"   "$auto_closed_count" "${RESET}" "${COLOR_CLOSED}"   "Completed milestones closed"    "${RESET}"
+  printf "$ROW_FMT" "${COLOR_CLOSED}"   "Total Closed"     "${RESET}" "${COLOR_CLOSED}${BOLD}"   "$closed_count"      "${RESET}" "${COLOR_CLOSED}"   "All closed milestones"          "${RESET}"
+  printf "$ROW_FMT" "${COLOR_PHASE1}"   "Issues Tracked"   "${RESET}" "${COLOR_PHASE1}${BOLD}"   "$total_issues"      "${RESET}" "${COLOR_PHASE1}"   "Total issues across milestones" "${RESET}"
+
   echo
 
   if [ "$open_issues_total" -gt 0 ]; then
-    echo -e "\n${COLOR_FAILED}${BOLD}❗ Attention: There are $open_issues_total open issues across all milestones${RESET} $(timestamp_now)"
+    echo -e "${COLOR_FAILED}${BOLD}❗ Attention: There are $open_issues_total open issues across all milestones${RESET} $(timestamp_now)"
   fi
 
-  echo -e "\n${COLOR_CREATED}${BOLD}🎉 Milestone management completed successfully for ${UNDERLINE}${OWNER}/${REPO}${RESET}"
+  # Completion message - now light green bold
+  echo -e "\n${COLOR_CLOSED}${BOLD}🎉 Milestone management completed successfully for ${UNDERLINE}${OWNER}/${REPO}${RESET}"
   echo -e "\n${COLOR_SUMMARY}${BOLD}💫 Thank you for using GitHub Milestone Manager!${RESET}"
 
-  # Add author details section
   echo -e "\n${COLOR_PHASE1}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
   echo -e "${COLOR_PHASE2}${BOLD}                           Author Details                                  ${RESET}"
   echo -e "${COLOR_PHASE1}${BOLD}━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━${RESET}"
@@ -675,22 +677,18 @@ process_milestones() {
   echo -e "${COLOR_UPCOMING}🔗 ${COLOR_PHASE2}https://www.linkedin.com/in/anuj-kumar-qa/${RESET}"
 
   echo -e "\n${COLOR_TIMESTAMP}Completed at: $(timestamp_now)${RESET}\n"
-  echo -e "\n${COLOR_PHASE1}Completed at: $(timestamp_now)${RESET}\n"
 }
 
 # -------------------------
 # Main
 # -------------------------
 main() {
-  # Requirements
   if ! command -v gh >/dev/null 2>&1; then
-    echo -e "${COLOR_FAILED}${BOLD}Error: GitHub CLI (gh) not installed. Please install and authenticate.${RESET}"
-    echo -e "Installation: https://github.com/cli/cli#installation"
+    echo -e "${COLOR_FAILED}${BOLD}Error: GitHub CLI (gh) not installed.${RESET}"
     exit 1
   fi
   if ! command -v jq >/dev/null 2>&1; then
-    echo -e "${COLOR_FAILED}${BOLD}Error: jq is not installed. Please install it.${RESET}"
-    echo -e "Installation: https://stedolan.github.io/jq/download/"
+    echo -e "${COLOR_FAILED}${BOLD}Error: jq not installed.${RESET}"
     exit 1
   fi
   if [ "$DRY_RUN" = false ]; then
@@ -700,14 +698,18 @@ main() {
     fi
   fi
 
-  clear
+  if [ "$NO_CLEAR" = false ] && [ -t 1 ]; then
+    clear
+  fi
+
   print_header
-  echo -e "🎯 ${COLOR_PHASE1}Initializing GitHub Milestone Manager for: ${BOLD}${OWNER}/${REPO}${RESET} $(timestamp_now)"
+  # Repository string now appears in bright yellow bold
+  echo -e "🎯 ${COLOR_PHASE1}Initializing GitHub Milestone Manager for: ${COLOR_CREATED}${BOLD}${OWNER}/${REPO}${RESET} $(timestamp_now)"
   echo -e "🔧 ${COLOR_PHASE1}Configuration    ⇒ $(timestamp_now)"
-  echo -e "  💡 ${COLOR_OPEN}Start Date     ⇒ ${COLOR_UPCOMING}${START_DATE}${RESET}"
-  echo -e "  ⇄ ${COLOR_OPEN}Spacing Days    ⇒ ${COLOR_UPCOMING}${SPACING_DAYS}${RESET}"
-  echo -e "  🕛 ${COLOR_OPEN}Default Time   ⇒ ${COLOR_UPCOMING}${DEFAULT_DUE_TIME}${RESET}"
-  echo -e "  𓊕 ${COLOR_OPEN}Dry Run         ⇒ ${COLOR_UPCOMING}${DRY_RUN}${RESET}"
+  echo -e "  💡 Start Date     ⇒ ${COLOR_UPCOMING}${START_DATE}${RESET}"
+  echo -e "  ⇄ Spacing Days    ⇒ ${COLOR_UPCOMING}${SPACING_DAYS}${RESET}"
+  echo -e "  🕛 Default Time   ⇒ ${COLOR_UPCOMING}${DEFAULT_DUE_TIME}${RESET}"
+  echo -e "  𓊕 Dry Run         ⇒ ${COLOR_UPCOMING}${DRY_RUN}${RESET}"
 
   process_milestones
 }

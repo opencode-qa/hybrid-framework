@@ -1,117 +1,107 @@
 package tests;
 
+import com.microsoft.playwright.Page;
+import exceptions.FrameworkException;
+import factory.BrowserFactory;
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
+import utils.ConfigReader;
+import utils.ScreenshotUtil;
 
-import com.microsoft.playwright.Browser;
-import com.microsoft.playwright.BrowserType;
-import com.microsoft.playwright.Page;
-import com.microsoft.playwright.Playwright;
-
+/**
+ * Test case TC_001: Validate the Text Box form on DemoQA.
+ */
 public class TC_001 {
 
-    Playwright playwright;
-    Browser browser;
-    Page page;
+    /** * Logger for the test. 
+     */
+    private static final Logger LOG = LogManager.getLogger(TC_001.class);
 
+    /** * The Playwright page instance. 
+     */
+    private Page page;
+
+    /**
+     * Sets up the browser and page before the test.
+     */
     @BeforeTest
     public void setUp() {
-
-        System.out.println("========== TEST SETUP STARTED ==========");
-
-        playwright = Playwright.create();
-        System.out.println("Playwright initialized");
-
-        browser = playwright.chromium().launch(
-                new BrowserType.LaunchOptions().setHeadless(true)
-        );
-        System.out.println("Browser launched successfully");
-
-        page = browser.newPage();
-        System.out.println("New page created");
-
-        System.out.println("========== TEST SETUP COMPLETED ==========");
+        LOG.info("========== TEST SETUP STARTED ==========");
+        try {
+            page = BrowserFactory.getNewPage();
+            LOG.info("Browser launched | Headless: {} | "
+                    + "SlowMo: {}ms | Browser: {}",
+                    ConfigReader.getProperty("headless"),
+                    ConfigReader.getProperty("slowMo"),
+                    ConfigReader.getProperty("browser"));
+        } catch (Exception e) {
+            LOG.error("Setup failed", e);
+            throw new FrameworkException(
+                    "Failed to initialise browser", e);
+        }
+        LOG.info("========== TEST SETUP COMPLETED ==========");
     }
 
+    /**
+     * Executes the Text Box form test.
+     */
     @Test
     public void testTextBoxForm() {
+        LOG.info("========== TEST EXECUTION STARTED ==========");
+        final String baseUrl = ConfigReader.getProperty(
+                "base.url", "https://demoqa.com");
+        try {
+            LOG.info("Navigating to {}", baseUrl);
+            page.navigate(baseUrl);
+            LOG.debug("Current URL: {}", page.url());
 
-        System.out.println("========== TEST EXECUTION STARTED ==========");
+            LOG.info("Clicking 'Elements' card");
+            page.click("div.card-body:has-text('Elements')");
+            LOG.info("Clicking 'Text Box' menu");
+            page.click("span.text:has-text('Text Box')");
 
-        // Navigate to website
-        System.out.println("Navigating to DemoQA website...");
-        page.navigate("https://demoqa.com");
-        System.out.println("Successfully navigated to: " + page.url());
+            LOG.info("Filling form fields");
+            page.fill("#userName", "John Doe");
+            page.fill("#userEmail", "john.doe@test.com");
+            page.fill("#currentAddress", "New Delhi, India");
+            page.fill("#permanentAddress", "Bangalore, India");
 
-        // Click Elements card
-        System.out.println("Clicking on 'Elements' card...");
-        page.click("div.card-body:has-text('Elements')");
-        System.out.println("'Elements' card clicked");
+            LOG.info("Submitting form");
+            page.click("#submit");
 
-        // Click Text Box menu item
-        System.out.println("Clicking on 'Text Box' menu...");
-        page.click("span.text:has-text('Text Box')");
-        System.out.println("'Text Box' menu clicked");
+            LOG.info("Verifying output section visibility");
+            final boolean isVisible = page.isVisible("#output");
+            LOG.info("Output visible: {}", isVisible);
+            
+            Assert.assertTrue(isVisible, 
+                    "Output div should be visible after submission");
 
-        // Fill form
-        System.out.println("Filling Full Name...");
-        page.fill("#userName", "John Doe");
-
-        System.out.println("Filling Email...");
-        page.fill("#userEmail", "john.doe@test.com");
-
-        System.out.println("Filling Current Address...");
-        page.fill("#currentAddress", "New Delhi, India");
-
-        System.out.println("Filling Permanent Address...");
-        page.fill("#permanentAddress", "Bangalore, India");
-
-        System.out.println("Form filled successfully");
-
-        // Submit form
-        System.out.println("Clicking Submit button...");
-        page.click("#submit");
-        System.out.println("Form submitted successfully");
-
-        // Validation
-        System.out.println("Validating output section visibility...");
-        boolean isOutputVisible = page.isVisible("#output");
-
-        System.out.println("Output visibility status: " + isOutputVisible);
-
-        Assert.assertTrue(
-                isOutputVisible,
-                "Output div should be visible after submission"
-        );
-
-        System.out.println("Assertion passed successfully");
-
-        // Print output
-        String outputText = page.textContent("#output");
-
-        System.out.println("========== OUTPUT RECEIVED ==========");
-        System.out.println(outputText);
-
-        System.out.println("========== TEST EXECUTION COMPLETED ==========");
+            final String outputText = page.textContent("#output");
+            LOG.info("Output text:\n{}", outputText);
+        } catch (AssertionError e) {
+            LOG.error("Assertion failed", e);
+            ScreenshotUtil.captureScreenshot(page, "TC_001_failure");
+            throw e;
+        } catch (Exception e) {
+            LOG.error("Unexpected error during test execution", e);
+            ScreenshotUtil.captureScreenshot(page, "TC_001_error");
+            throw new FrameworkException("Test execution failed", e);
+        }
+        LOG.info("========== TEST EXECUTION COMPLETED ==========");
     }
 
+    /**
+     * Closes the browser after the test.
+     */
     @AfterTest
     public void tearDown() {
-
-        System.out.println("========== TEST TEARDOWN STARTED ==========");
-
-        if (browser != null) {
-            browser.close();
-            System.out.println("Browser closed successfully");
-        }
-
-        if (playwright != null) {
-            playwright.close();
-            System.out.println("Playwright closed successfully");
-        }
-
-        System.out.println("========== TEST TEARDOWN COMPLETED ==========");
+        LOG.info("========== TEST TEARDOWN STARTED ==========");
+        BrowserFactory.closeBrowser();
+        LOG.info("Browser closed");
+        LOG.info("========== TEST TEARDOWN COMPLETED ==========");
     }
 }

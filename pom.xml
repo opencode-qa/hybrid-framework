@@ -10,19 +10,16 @@
 	<!-- Project Metadata -->
 	<groupId>opencode-qa</groupId>
 	<artifactId>hybrid-framework</artifactId>
-	<version>0.1.0</version>
+	<version>0.2.0</version>
 	<packaging>jar</packaging>
 
 	<name>Hybrid Framework</name>
-
 	<description>
-		A Java-based hybrid test automation framework
-		using Playwright and TestNG.
+		Enterprise-grade UI automation framework built using Playwright, Java 21, and TestNG. Designed with scalable Page Object Model architecture, parallel execution, cross-browser support, data-driven testing, visual regression capabilities, CI/CD integration, advanced reporting, and reusable automation utilities for modern web application testing.
 	</description>
 
 	<!-- Global Properties -->
 	<properties>
-
 		<!-- Encoding -->
 		<project.build.sourceEncoding>UTF-8</project.build.sourceEncoding>
 
@@ -32,17 +29,16 @@
 		<!-- Dependency Versions -->
 		<playwright.version>1.59.0</playwright.version>
 		<testng.version>7.12.0</testng.version>
+		<log4j.version>2.26.0</log4j.version>
 
 		<!-- Plugin Versions -->
 		<maven.compiler.plugin.version>3.15.0</maven.compiler.plugin.version>
 		<maven.surefire.plugin.version>3.5.5</maven.surefire.plugin.version>
 		<maven.clean.plugin.version>3.5.0</maven.clean.plugin.version>
-
 	</properties>
 
 	<!-- Dependencies -->
 	<dependencies>
-
 		<!-- Playwright -->
 		<dependency>
 			<groupId>com.microsoft.playwright</groupId>
@@ -50,7 +46,7 @@
 			<version>${playwright.version}</version>
 		</dependency>
 
-		<!-- TestNG -->
+		<!-- TestNG (test scope only) -->
 		<dependency>
 			<groupId>org.testng</groupId>
 			<artifactId>testng</artifactId>
@@ -58,45 +54,62 @@
 			<scope>test</scope>
 		</dependency>
 
+		<!-- Log4j2 Core & API (compile scope = available in main and test) -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-core</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-api</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
+
+		<!-- SLF4J to Log4j2 bridge (to capture Playwright's logs) -->
+		<dependency>
+			<groupId>org.apache.logging.log4j</groupId>
+			<artifactId>log4j-slf4j2-impl</artifactId>
+			<version>${log4j.version}</version>
+		</dependency>
 	</dependencies>
 
 	<!-- Build Configuration -->
 	<build>
-
 		<plugins>
-
 			<!-- Maven Compiler Plugin -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-compiler-plugin</artifactId>
 				<version>${maven.compiler.plugin.version}</version>
-
 				<configuration>
 					<release>${maven.compiler.release}</release>
 				</configuration>
 			</plugin>
 
-			<!-- Maven Surefire Plugin -->
+			<!-- Maven Surefire Plugin (for TestNG execution) -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-surefire-plugin</artifactId>
 				<version>${maven.surefire.plugin.version}</version>
-
 				<configuration>
 					<suiteXmlFiles>
 						<suiteXmlFile>testng.xml</suiteXmlFile>
 					</suiteXmlFiles>
 					<useFile>false</useFile>
 					<reportFormat>plain</reportFormat>
+					<!-- Optional: prevent "Corrupted channel" warning -->
+					<forkCount>1</forkCount>
+					<reuseForks>false</reuseForks>
 				</configuration>
 			</plugin>
+
 			<!-- Maven Clean Plugin -->
 			<plugin>
 				<groupId>org.apache.maven.plugins</groupId>
 				<artifactId>maven-clean-plugin</artifactId>
 				<version>${maven.clean.plugin.version}</version>
 			</plugin>
-
 		</plugins>
 	</build>
 </project>

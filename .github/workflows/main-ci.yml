@@ -95,6 +95,19 @@ jobs:
           if-no-files-found: ignore
           retention-days: 7
 
+      # NEW: Upload logs and screenshots from test execution
+      - name: 📸 Upload Logs & Screenshots
+        uses: actions/upload-artifact@v4
+        if: always()
+        continue-on-error: true
+        with:
+          name: test-artifacts-${{ github.sha }}
+          path: |
+            logs/
+            screenshots/
+          if-no-files-found: ignore
+          retention-days: 7
+
   security:
     name: "🛡️ Dependency Security"
     needs: validate-pom
