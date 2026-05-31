@@ -1,132 +1,111 @@
-# 🚀 Playwright Java Hybrid Framework
+# 🚀 Playwright Java Hybrid Framework – v0.2.0
 
 <p align="center">
-
-<img src="https://img.shields.io/github/v/release/opencode-qa/hybrid-framework?style=for-the-badge" />
-<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/main-ci.yml?branch=main&style=for-the-badge&label=Main%20CI" />
-<img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?branch=main&style=for-the-badge&label=Feature%20PR" />
-<img src="https://img.shields.io/badge/Java-21-blue?style=for-the-badge" />
-<img src="https://img.shields.io/badge/Playwright-1.59.0-brightgreen?style=for-the-badge" />
-<img src="https://img.shields.io/badge/TestNG-7.12.0-red?style=for-the-badge" />
-<img src="https://img.shields.io/github/license/opencode-qa/hybrid-framework?style=for-the-badge" />
-
-</p>
-
-<p align="center">
-
-Enterprise-grade Playwright + Java hybrid automation framework focused on scalability, CI/CD governance, repository automation, and modern testing architecture.
-
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/main-ci.yml?branch=dev&style=for-the-badge&label=Main%20CI%20(dev)" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?branch=dev&style=for-the-badge&label=Feature%20PR%20(dev)" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/release-pr.yml?branch=dev&style=for-the-badge&label=Release%20PR%20(dev)" />
+  <img src="https://img.shields.io/badge/Java-21-blue?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Playwright-1.59.0-brightgreen?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/TestNG-7.12.0-red?style=for-the-badge" />
+  <img src="https://img.shields.io/badge/Log4j2-2.26.0-orange?style=for-the-badge" />
+  <img src="https://img.shields.io/github/license/opencode-qa/hybrid-framework?style=for-the-badge" />
+  <img src="https://img.shields.io/github/actions/workflow/status/opencode-qa/hybrid-framework/feature-pr.yml?style=for-the-badge&label=Feature%20PR%20(last%20run)" />
 </p>
 
 ---
 
 # 📚 Table of Contents
 
-* [📌 Project Overview](#-project-overview)
-* [✨ Key Features](#-key-features)
-* [🆕 What's New in v0.1.0](#-whats-new-in-v010)
-* [⚙️ Technology Stack](#️-technology-stack)
-* [🧠 System Architecture](#-system-architecture)
-* [🧱 Framework Design Layers](#-framework-design-layers)
-* [🔁 Execution Workflow](#-execution-workflow)
-* [⚙️ CI/CD Architecture](#️-cicd-architecture)
-* [🧪 First Test Case — TC_001](#-first-test-case--tc_001)
-* [📁 Project Structure](#-project-structure)
-* [⚙️ Setup & Installation](#️-setup--installation)
-* [▶️ Test Execution](#️-test-execution)
-* [📊 Reporting Strategy](#-reporting-strategy)
-* [⏱️ Release PR Behaviour](#️-release-pr-behaviour)
-* [🌿 Branching Strategy](#-branching-strategy)
-* [🧮 Semantic Versioning](#-semantic-versioning)
-* [🛣️ Roadmap](#️-roadmap)
-* [🤝 Contributing](#-contributing)
-* [👨‍💻 Author](#-author)
-* [📜 License](#-license)
+- [📌 Project Overview](#-project-overview)
+- [✨ Key Features](#-key-features)
+- [🆕 What's New in v0.2.0](#-whats-new-in-v020)
+- [⚙️ Technology Stack](#️-technology-stack)
+- [🧠 System Architecture](#-system-architecture)
+- [🧱 Framework Design Layers](#-framework-design-layers)
+- [🔁 Execution Workflow](#-execution-workflow)
+- [⚙️ CI/CD Architecture](#️-cicd-architecture)
+- [🧪 Test Example with Logging](#-test-example-with-logging)
+- [📁 Project Structure](#-project-structure)
+- [⚙️ Setup & Installation](#️-setup--installation)
+- [📝 Configuration](#-configuration)
+- [▶️ Test Execution](#️-test-execution)
+- [📊 Logging & Reporting](#-logging--reporting)
+- [⏱️ Release PR Behaviour](#️-release-pr-behaviour)
+- [🌿 Branching Strategy](#-branching-strategy)
+- [🧮 Semantic Versioning](#-semantic-versioning)
+- [🛣️ Roadmap](#️-roadmap)
+- [🤝 Contributing](#-contributing)
+- [👨‍💻 Author](#-author)
+- [📜 License](#-license)
 
 ---
 
 # 📌 Project Overview
 
-Nova Hybrid Framework is a scalable UI automation framework built using modern enterprise automation principles.
+Nova Hybrid Framework is a scalable UI automation framework built using modern enterprise principles.  
+**v0.2.0** introduces a full logging subsystem, configuration management, screenshot utility, and a centralised browser factory.
 
 The framework combines:
 
-* ✅ Java 21
-* ✅ Playwright 1.59.0
-* ✅ TestNG 7.12.0
-* ✅ Maven Build Lifecycle
-* ✅ GitHub Actions CI/CD
-* ✅ Automated Release Workflows
-* ✅ Repository Governance
-* ✅ Semantic Versioning
-
----
-
-## 🎯 Vision
-
-The framework prioritises:
-
-* Governance-first automation
-* Scalable framework architecture
-* Maintainable CI/CD workflows
-* Automated repository management
-* High-performance UI validation
-* Long-term extensibility
+- ✅ Java 21
+- ✅ Playwright 1.59.0
+- ✅ TestNG 7.12.0
+- ✅ Log4j2 2.26.0
+- ✅ Maven Build Lifecycle
+- ✅ GitHub Actions CI/CD
+- ✅ Automated Release Workflows
+- ✅ Repository Governance
+- ✅ Semantic Versioning
 
 ---
 
 # ✨ Key Features
 
-| Capability                     | Status |
-| ------------------------------ | ------ |
-| Playwright Integration         | ✅      |
-| TestNG Execution Engine        | ✅      |
-| Maven Build Lifecycle          | ✅      |
-| GitHub Actions CI/CD           | ✅      |
-| Automated PR Workflows         | ✅      |
-| Semantic Versioning            | ✅      |
-| Browser Lifecycle Management   | ✅      |
-| Reporting Foundation           | ✅      |
-| First Runnable Test (`TC_001`) | ✅      |
+| Capability                     | v0.0.0 | v0.1.0 | v0.2.0 |
+| ------------------------------ | ------ | ------ | ------ |
+| Project Skeleton & CI          | ✅      | ✅      | ✅      |
+| Playwright + TestNG            | ❌      | ✅      | ✅      |
+| First Runnable Test            | ❌      | ✅      | ✅      |
+| **Log4j2 Logging**             | ❌      | ❌      | ✅      |
+| **Configuration Manager**      | ❌      | ❌      | ✅      |
+| **Screenshot Utility**         | ❌      | ❌      | ✅      |
+| **Browser Factory (configurable)** | ❌   | ❌      | ✅      |
+| Page Object Model              | ❌      | ❌      | ⏳      |
+| Data‑Driven Testing            | ❌      | ❌      | ⏳      |
 
 ---
 
-# 🆕 What's New in `v0.1.0`
+# 🆕 What's New in `v0.2.0`
 
 ## 🚀 Major Enhancements
 
-* Full Playwright integration
-* TestNG execution support
-* Browser lifecycle management
-* Base test lifecycle
-* Runnable automation engine
-* Initial reporting foundation
-* GitHub Actions test execution
-* First working Playwright test (`TC_001`)
-
----
+- **Log4j2 Integration** – console and file logging with configurable levels.
+- **ConfigReader** – load runtime settings from `config.properties`.
+- **BrowserFactory** – centralised browser creation (supports headless, slowMo, multiple engines).
+- **ScreenshotUtil** – capture PNG screenshots manually or on test failure.
+- **CI Artifacts** – logs and screenshots automatically uploaded.
 
 ## 📈 Upgrade Summary
 
-| Component  | v0.0.0          | v0.1.0              |
-| ---------- | --------------- | ------------------- |
-| Framework  | Skeleton        | Runnable Core       |
-| Playwright | ❌               | ✅                   |
-| Tests      | None            | `TC_001`            |
-| Execution  | Validation Only | Runtime Execution   |
-| CI/CD      | Governance      | Real Test Execution |
+| Component        | v0.1.0                        | v0.2.0                           |
+| ---------------- | ----------------------------- | -------------------------------- |
+| Logging          | `System.out.println`          | Log4j2 (info, debug, error)      |
+| Configuration    | Hardcoded                     | `config.properties` + env overrides |
+| Browser creation | Inside test class             | `BrowserFactory` (reusable)      |
+| Screenshots      | None                          | Automatic on failure              |
 
 ---
 
 # ⚙️ Technology Stack
 
-| Technology     | Version |
-| -------------- | ------- |
-| Java           | 21      |
-| Maven          | 3.9+    |
-| Playwright     | 1.59.0  |
-| TestNG         | 7.12.0  |
-| GitHub Actions | Latest  |
+| Technology     | Version  |
+| -------------- | -------- |
+| Java           | 21       |
+| Maven          | 3.9+     |
+| Playwright     | 1.59.0   |
+| TestNG         | 7.12.0   |
+| Log4j2         | 2.26.0   |
+| GitHub Actions | Latest   |
 
 ---
 
@@ -134,228 +113,180 @@ The framework prioritises:
 
 ```mermaid
 graph TD
-
     A[Developer] -->|Push Code| B[Feature Branch]
-
     B --> C[Feature PR Workflow]
-
     C --> D[GitHub Pull Request]
-
     D --> E[Feature Pipeline]
-
     E --> F{Validation Passed?}
-
     F -->|Yes| G[Merge to dev]
-
     F -->|No| H[Fix Issues]
-
     G --> I[Main CI Pipeline]
-
     I --> J[Playwright Execution]
-
-    J --> K[Test Reports]
-
+    J --> K[Test Reports + Logs + Screenshots]
     K --> L[Release Automation]
 ```
 
 ---
 
 # 🧱 Framework Design Layers
-
 ```mermaid
 graph TD
-
-    Tests[Test Layer]
-
-    Tests --> Pages[Page Layer – planned v0.3.0]
-
+    Tests[Test Layer] --> Pages[Page Layer – planned v0.3.0]
     Pages --> Core[Core Framework]
-
-    Core --> Driver[Driver Factory]
-
-    Core --> Config[Configuration Layer – planned v0.2.0]
-
-    Core --> Utils[Utility Layer]
-
+    Core --> Driver[BrowserFactory]
+    Core --> Config[ConfigReader – v0.2.0 ✅]
+    Core --> Utils[ScreenshotUtil – v0.2.0 ✅]
+    Core --> Logging[Log4j2 – v0.2.0 ✅]
     Driver --> PW[Playwright Engine]
 ```
 
 ---
 
 # 🔁 Execution Workflow
-
 ```mermaid
 sequenceDiagram
-
     participant Dev as Developer
     participant GitHub
     participant CI as GitHub Actions
     participant TestNG
     participant PW as Playwright
+    participant Log as Log4j2
 
     Dev->>GitHub: Push Code
-
     GitHub->>CI: Trigger Workflow
-
     CI->>TestNG: Execute Test Suite
-
-    TestNG->>PW: Launch Browser
-
+    TestNG->>Log: Log start
+    TestNG->>PW: Launch Browser (via BrowserFactory)
     PW->>PW: Run Test Automation
-
     PW-->>TestNG: Return Results
-
+    TestNG->>Log: Log end + failure details
     TestNG-->>CI: Generate Reports
-
-    CI-->>GitHub: Publish Status
+    CI-->>GitHub: Publish Status + Artifacts
 ```
 
 ---
 
 # ⚙️ CI/CD Architecture
-
 ```mermaid
 graph LR
-
-    A[Push / Pull Request]
-        --> B[GitHub Actions]
-
+    A[Push / PR] --> B[GitHub Actions]
     B --> C[Maven Build]
-
     C --> D[Test Execution]
-
     D --> E[Playwright Tests]
-
-    E --> F[Reports]
-
-    F --> G[Release Workflow]
+    E --> F[Logs & Screenshots]
+    F --> G[Upload Artifacts]
+    G --> H[Release Workflow]
 ```
 
 ---
 
-# 🧪 First Test Case — `TC_001`
-
-## 🔄 Flow
-
-```mermaid
-flowchart LR
-
-    A[Launch Browser]
-        --> B[Open DemoQA]
-
-    B --> C[Open Text Box Form]
-
-    C --> D[Fill User Details]
-
-    D --> E[Submit Form]
-
-    E --> F[Validate Output]
-
-    F --> G[Close Browser]
-```
-
----
-
-## 💻 Actual Test Code (`v0.1.0`)
-
+# 🧪 Test Example with Logging
+The TC_001 test now uses Log4j2 instead of System.out. See the updated code below.
 ```java
 package tests;
 
+import org.apache.logging.log4j.LogManager;
+import org.apache.logging.log4j.Logger;
 import org.testng.Assert;
 import org.testng.annotations.AfterTest;
 import org.testng.annotations.BeforeTest;
 import org.testng.annotations.Test;
-
 import com.microsoft.playwright.*;
 
 public class TC_001 {
 
-    Playwright playwright;
-    Browser browser;
-    Page page;
+    private static final Logger log = LogManager.getLogger(TC_001.class);
+    private Playwright playwright;
+    private Browser browser;
+    private Page page;
 
     @BeforeTest
     public void setUp() {
-
+        log.info("========== TEST SETUP STARTED ==========");
         playwright = Playwright.create();
-
-        browser = playwright.chromium()
-                .launch(new BrowserType.LaunchOptions()
-                .setHeadless(true));
-
+        // Read config (simplified – actually use ConfigReader)
+        boolean headless = Boolean.parseBoolean(System.getProperty("headless", "true"));
+        browser = playwright.chromium().launch(new BrowserType.LaunchOptions().setHeadless(headless));
         page = browser.newPage();
+        log.info("Browser launched – headless: {}", headless);
+        log.info("========== TEST SETUP COMPLETED ==========");
     }
 
     @Test
     public void testTextBoxForm() {
-
+        log.info("========== TEST EXECUTION STARTED ==========");
+        log.info("Navigating to DemoQA...");
         page.navigate("https://demoqa.com");
+        log.debug("Current URL: {}", page.url());
 
+        log.info("Clicking Elements card...");
         page.click("div.card-body:has-text('Elements')");
-
+        log.info("Clicking Text Box menu...");
         page.click("span.text:has-text('Text Box')");
 
+        log.info("Filling form fields...");
         page.fill("#userName", "Anuj Kumar");
-
         page.fill("#userEmail", "anuj@example.com");
-
         page.fill("#currentAddress", "New Delhi, India");
-
         page.fill("#permanentAddress", "Bangalore, India");
 
+        log.info("Submitting form...");
         page.click("#submit");
 
-        Assert.assertTrue(
-                page.isVisible("#output"),
-                "Output div should be visible after submission"
-        );
+        log.info("Validating output...");
+        boolean isVisible = page.isVisible("#output");
+        log.info("Output visible: {}", isVisible);
+        Assert.assertTrue(isVisible, "Output div should be visible after submission");
+
+        log.info("========== TEST EXECUTION COMPLETED ==========");
     }
 
     @AfterTest
     public void tearDown() {
-
+        log.info("========== TEST TEARDOWN STARTED ==========");
         if (browser != null) {
             browser.close();
+            log.info("Browser closed.");
         }
-
         if (playwright != null) {
             playwright.close();
+            log.info("Playwright closed.");
         }
+        log.info("========== TEST TEARDOWN COMPLETED ==========");
     }
 }
 ```
-
-> **Note:** `BaseTest`, `BrowserFactory`, logging, and config management are planned for `v0.2.0`.
+> 
+> Note: In v0.2.0, BrowserFactory and ConfigReader are used; the above is simplified for illustration.
 
 ---
 
 # 📁 Project Structure
-
-```plaintext
+```text
 hybrid-framework/
 ├── .github/
 │   ├── workflows/
 │   │   ├── feature-pr.yml
 │   │   ├── main-ci.yml
 │   │   └── release-pr.yml
-│   │
 │   ├── features/
+│   │   └── v0.2.0-core-utilities-configuration.md
 │   ├── issues/
 │   └── releases/
-│
-├── scripts/
-│   ├── feature-pr.sh
-│   ├── release-pr.sh
-│   ├── pom-validator.sh
-│   ├── issues.sh
-│   └── milestones.sh
-│
+│       └── v0.2.0.md
+├── scripts/                     # Bash automation scripts
 ├── src/
 │   ├── main/java/
-│   └── test/java/
-│       └── tests/
-│           └── TC_001.java
-│
+│   │   ├── BrowserFactory.java
+│   │   ├── ConfigReader.java
+│   │   └── ScreenshotUtil.java
+│   └── test/
+│       ├── java/tests/TC_001.java
+│       └── resources/
+│           ├── log4j2.xml
+│           └── config.properties
+├── logs/                        # Generated log files
+├── screenshots/                 # Generated screenshots
 ├── testng.xml
 ├── pom.xml
 └── README.md
@@ -364,295 +295,93 @@ hybrid-framework/
 ---
 
 # ⚙️ Setup & Installation
-
 ## 📋 Prerequisites
+- **Java** `21`
 
-* Java `17+`
-* Maven `3.8+`
-* Git `2.30+`
-* GitHub CLI (`gh`) *(optional for automation scripts)*
+- **Maven** `3.8+`
 
----
+- **Git** `2.30+`
 
-## 📥 Clone Repository
+- *GitHub CLI* (optional)
 
+## 📥 Clone & Build
 ```bash
 git clone https://github.com/opencode-qa/hybrid-framework.git
-
 cd hybrid-framework
-```
-
----
-
-## 📦 Install Dependencies
-
-```bash
 mvn clean install
 ```
 
----
-
 ## 🌐 Install Playwright Browsers
-
 ```bash
-mvn exec:java \
--Dexec.mainClass=com.microsoft.playwright.CLI \
--Dexec.args="install"
+mvn exec:java -Dexec.mainClass=com.microsoft.playwright.CLI -Dexec.args="install"
+```
+# 📝 Configuration
+Create `src/test/resources/config.properties`:
+
+```properties
+# Browser settings
+browser=chromium          # chromium, firefox, webkit
+headless=true
+slowMo=100                # milliseconds
+
+# Application
+base.url=https://demoqa.com
+
+# Screenshots
+screenshot.on.failure=true
+screenshot.dir=./screenshots
 ```
 
----
+Use ConfigReader in your tests:
+
+```java
+String browserType = ConfigReader.getProperty("browser");
+boolean headless = Boolean.parseBoolean(ConfigReader.getProperty("headless"));
+```
 
 # ▶️ Test Execution
-
-## ▶️ Run All Tests
-
 ```bash
+# Run all tests
 mvn test
-```
 
----
-
-## 🎯 Run Specific Test
-
-```bash
+# Run specific test
 mvn test -Dtest=TC_001
+
+# Override headless mode
+mvn test -Dheadless=false
+
+# Override browser
+mvn test -Dbrowser=firefox
 ```
 
----
+## 📊 Logging & Reporting
+Log4j2 is configured via `src/main/resources/log4j2.xml`:
 
-## 🧪 Execute TestNG Suite
+- **Console** – coloured, timestamped, levels.
 
-```bash
-mvn test -DsuiteXmlFile=testng.xml
-```
+- **File** – logs/automation.log (rolling file, appended each run).
 
----
-
-# 📊 Reporting Strategy
-
-## 🧰 Current Reporting Stack
-
-* TestNG HTML/XML Reports
-* Console Logs
-* GitHub Actions Artifacts
-
----
-
-## 🚀 Planned Reporting (`v0.9.0`)
-
-* Allure Framework Integration
-* Screenshots & Video Attachments
-* Rich Dashboard Analytics
-* Historical Trend Reports
-
----
-
-## 🔄 Reporting Workflow
-
-```mermaid
-graph TD
-
-    A[Test Execution]
-        --> B[TestNG Listener]
-
-    B --> C[Capture Results]
-
-    C --> D[Generate Reports]
-
-    D --> E[Upload CI Artifacts]
-```
-
----
-
-# ⏱️ Release PR Behaviour
-
-When a release is triggered:
-
-1. A release branch (`release/vX.Y.Z`) is created from `dev`
-2. `pom.xml` version is updated
-3. A PR from release branch → `main` is created
-4. The workflow waits for manual review & merge
-5. Git tag + GitHub Release are generated
-6. `dev` is updated to next snapshot version
-
----
-
-## 🔄 Release Automation Flow
-
-```mermaid
-flowchart LR
-
-    A[Create Release Branch]
-        --> B[Update pom.xml]
-
-    B --> C[Open Release PR]
-
-    C --> D[Manual Review]
-
-    D --> E[Merge to Main]
-
-    E --> F[Create Git Tag]
-
-    F --> G[Publish GitHub Release]
-
-    G --> H[Update Dev Snapshot]
-```
-
----
-
-# 🌿 Branching Strategy
-
-## 🌱 Branch Rules
-
-| Branch      | Purpose                   |
-| ----------- | ------------------------- |
-| `main`      | Production-ready releases |
-| `dev`       | Integration branch        |
-| `feature/*` | Active development        |
-| `release/*` | Release preparation       |
-| `hotfix/*`  | Emergency fixes           |
-
----
-
-## 🔀 Git Flow
-
-```mermaid
-gitGraph
-
-    commit id: "Initial Commit"
-
-    branch dev
-    checkout dev
-    commit id: "Framework Setup"
-
-    branch feature_playwright
-    checkout feature_playwright
-    commit id: "Add Playwright + TC_001"
-
-    checkout dev
-    merge feature_playwright tag: "v0.1.0"
-
-    checkout main
-    merge dev
-```
-
----
-
-# 🧮 Semantic Versioning
-
-The framework follows Semantic Versioning (`SemVer`).
-
-| Commit Type        | Version Impact |
-| ------------------ | -------------- |
-| `BREAKING CHANGE:` | Major          |
-| `feat:`            | Minor          |
-| `fix:`             | Patch          |
-
----
-
-## 🔄 Versioning Workflow
-
-```mermaid
-flowchart LR
-
-    A[Commit]
-        --> B{Commit Type}
-
-    B -->|feat| C[Minor]
-
-    B -->|fix| D[Patch]
-
-    B -->|breaking| E[Major]
-
-    C --> F[Release PR]
-    D --> F
-    E --> F
-
-    F --> G[Git Tag]
-
-    G --> H[GitHub Release]
-```
-
----
-
-# 🛣️ Roadmap
-
-| Version  | Milestone                      | Status |
-| -------- | ------------------------------ | ------ |
-| `v0.0.0` | Project Skeleton & CI/CD Setup | ✅      |
-| `v0.1.0` | Playwright Core & TC_001       | ✅      |
-| `v0.2.0` | Logging & Config Management    | 🚧     |
-| `v0.3.0` | Page Object Model Architecture | ⏳      |
-| `v0.4.0` | Data-Driven Framework          | ⏳      |
-| `v0.5.0` | Network Mocking & Auth State   | ⏳      |
-| `v0.6.0` | Visual Regression Testing      | ⏳      |
-| `v0.7.0` | Parallel & Cross-Browser       | ⏳      |
-| `v0.8.0` | Retry Logic & Listeners        | ⏳      |
-| `v0.9.0` | Allure Reporting               | ⏳      |
-| `v1.0.0` | Stable Enterprise Release      | ⏳      |
-
----
-
-# 🤝 Contributing
-
-```bash
-# Create feature branch
-git checkout -b feature/new-feature
-
-# Commit changes
-git commit -m "feat: add new feature"
-
-# Push changes
-git push origin feature/new-feature
-
-# Create PR
-./scripts/feature-pr.sh
-```
-
-All pull requests must pass:
-
-* `feature-pr.yml`
-* `main-ci.yml`
-
----
-
-# 👨‍💻 Author
-
-## Anuj Kumar
-
-🏅 QA Lead | Automation Architect | AI-Assisted Testing Specialist
-
-* 🔗 GitHub: https://github.com/opencode-qa
-* 🔗 LinkedIn: https://linkedin.com/in/anuj-kumar-qa
-* 📧 Email: [anujpatiyal@live.in](mailto:anujpatiyal@live.in)
-
----
-
-# 📜 License
-
-Distributed under the MIT License.
+Sample console output:
 
 ```text
-MIT License © 2026 Anuj Kumar
+10:30:45.123 [main] INFO  tests.TC_001 - ========== TEST SETUP STARTED ==========
+10:30:45.456 [main] INFO  tests.TC_001 - Browser launched – headless: true
 ```
 
----
+Artifacts in CI:
+After each run, GitHub Actions uploads `logs/` and `screenshots/` as downloadable artifacts.
 
-# 💡 Philosophy
+# ⏱️ Release PR Behaviour
+When a release is triggered via `release-pr.sh`:
 
-> “First, solve the problem. Then, write the code.”
->
-> — John Johnson
+1. Release branch (release/vX.Y.Z) created from dev
 
-Nova Hybrid Framework follows a governance-first automation philosophy where scalability, CI/CD architecture, repository automation, and maintainability are prioritised before implementation complexity.
+2. pom.xml version updated (removes -SNAPSHOT)
 
----
+3. PR created from release branch → main
 
-# ⭐ Support the Project
+4. Pipeline waits up to 3 hours for manual merge
 
-If you find this project useful:
+5. After merge: signed Git tag + GitHub Release created
 
-* ⭐ Star the repository
-* 🍴 Fork the project
-* 🛠️ Contribute improvements
-* 🐞 Report issues
+6. dev is bumped to next -SNAPSHOT (e.g., 0.3.0-SNAPSHOT)

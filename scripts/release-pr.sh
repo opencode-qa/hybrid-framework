@@ -255,34 +255,45 @@ EOF
 # PR Metadata Processing (Labels, Milestone, Assignees, Reviewers)
 # ------------------------------------------------------------------------------
 process_labels() {
-    local pr_num="$1" repo="$2"
+    local pr_num="$1"
+    local repo="$2"
     shift 2
     local desired_labels=("$@")
 
-    [[ ${#desired_labels[@]} -eq 0 ]] && return
+    if [[ ${#desired_labels[@]} -eq 0 ]]; then
+        log_skip "No labels specified in metadata"
+        return
+    fi
 
     log_info "Processing labels..."
-    local current_repo_labels
-    current_repo_labels=$(gh api "repos/$repo/labels" --jq '.[].name' 2>/dev/null || echo "")
-
     local current_pr_labels
     current_pr_labels=$(gh pr view "$pr_num" --json labels --jq '.labels[].name' 2>/dev/null || echo "")
 
     for label in "${desired_labels[@]}"; do
+        # Skip if already on PR
         if echo "$current_pr_labels" | grep -Fxq "$label"; then
             log_skip "Label '$label' already exists on PR"
             continue
         fi
 
-        if ! echo "$current_repo_labels" | grep -Fxq "$label"; then
+        # Check if label exists in repository
+        if gh label view "$label" &>/dev/null; then
+            log_skip "Label '$label' already exists in repository"
+        else
             log_info "Creating missing label '$label' in repository"
-            gh label create "$label" --color "$LABEL_COLOR" --description "Created via release script" >/dev/null 2>&1 \
-                || log_warn "Failed to create label '$label' (Check permissions)"
+            if ! gh label create "$label" --color "$LABEL_COLOR" --description "Created via PR script" >/dev/null 2>&1; then
+                log_warn "Failed to create label '$label' (Check permissions)"
+                # Continue anyway – label might still be added if it exists but creation failed for other reasons
+            fi
         fi
 
-        gh pr edit "$pr_num" --add-label "$label" >/dev/null 2>&1 \
-            && log_success "Added label '$label'" \
-            || log_error "Failed to add label '$label'"
+        # Add label to PR (this will work even if creation failed but label already exists)
+        log_info "Adding label '$label' to PR"
+        if gh pr edit "$pr_num" --add-label "$label" >/dev/null 2>&1; then
+            log_success "Added label '$label'"
+        else
+            log_error "Failed to add label '$label'"
+        fi
     done
 }
 
